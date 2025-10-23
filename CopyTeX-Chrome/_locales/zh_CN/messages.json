@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "CopyTeX – 即刻复制 AI 对话中的原始 LaTeX",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "自动检测并复制任何网站（Gemini、ChatGPT、Claude等）中的数学公式，双击即可复制LaTeX格式",
+    "description": "扩展描述"
+  }
+}

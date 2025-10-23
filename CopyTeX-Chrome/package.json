@@ -1,0 +1,45 @@
+{
+  "name": "universal-math-formula-copier",
+  "version": "1.0.0",
+  "description": "Copy mathematical formulas from AI platforms in LaTeX format with a simple double-click",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "clean": "rm -rf dist",
+    "zip": "npm run build && npm run zip:all",
+    "zip:all": "cd dist && zip -r chrome.zip chrome/ && zip -r firefox.zip firefox/ && zip -r edge.zip edge/ && zip -r safari.zip safari/",
+    "release": "node release.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HeroBlast10/gemini-copier.git"
+  },
+  "keywords": [
+    "math",
+    "latex",
+    "formula",
+    "copier",
+    "ai",
+    "gemini",
+    "chatgpt",
+    "claude",
+    "deepseek",
+    "browser-extension",
+    "chrome",
+    "firefox",
+    "edge",
+    "safari"
+  ],
+  "author": "HeroBlast10",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/HeroBlast10/gemini-copier/issues"
+  },
+  "homepage": "https://github.com/HeroBlast10/gemini-copier#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

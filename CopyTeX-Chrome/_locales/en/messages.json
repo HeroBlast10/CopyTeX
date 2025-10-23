@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "CopyTeX \u2013 Instantly Copy Real LaTeX from AI chats",
+    "description": "The name of the extension."
+  },
+  "extensionDescription": {
+    "message": "Automatically copy math formulas from any site (Gemini, ChatGPT, Claude, etc.) as LaTeX with a double-click",
+    "description": "The description of the extension."
+  }
+}
