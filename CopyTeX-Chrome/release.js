@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 
 // Release configuration
 const releaseConfig = {
-    version: '1.0.0',
+    version: '1.0.1',
     browsers: ['chrome', 'firefox', 'edge', 'safari'],
     storeUrls: {
         chrome: 'https://chrome.google.com/webstore/devconsole/',

@@ -1,6 +1,6 @@
 {
   "name": "universal-math-formula-copier",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Copy mathematical formulas from AI platforms in LaTeX format with a simple double-click",
   "main": "build.js",
   "scripts": {

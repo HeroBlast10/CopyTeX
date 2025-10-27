@@ -3,108 +3,319 @@
 <head>
   <meta charset="utf-8">
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      width: 300px;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 405px;
+      padding: 0;
       margin: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      overflow: hidden;
+    }
+
+    /* 背景动画效果 */
+    .background-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      padding: 24px;
+      z-index: 1;
     }
     
+    /* 头部区域 */
     .header {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
+      animation: fadeInDown 0.6s ease-out;
+    }
+    
+    .logo-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
     
     .logo {
-      font-size: 24px;
-      margin-bottom: 8px;
+      width: 40px;
+      height: 40px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
     }
     
     h1 {
-      font-size: 18px;
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .subtitle {
+      font-size: 13px;
+      opacity: 0.9;
+      font-weight: 400;
       margin: 0;
-      color: #1a73e8;
+    }
+    
+    /* 描述卡片 */
+    .description-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      animation: fadeInUp 0.6s ease-out 0.1s backwards;
     }
     
     .description {
-      color: #5f6368;
       font-size: 14px;
-      line-height: 1.4;
-      margin-bottom: 20px;
-    }
-    
-    .instructions {
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    
-    .instructions h3 {
-      margin: 0 0 10px 0;
-      font-size: 14px;
-      color: #202124;
-    }
-    
-    .instructions ol {
+      line-height: 1.6;
       margin: 0;
-      padding-left: 20px;
+      opacity: 0.95;
+    }
+    
+    /* 使用说明 */
+    .instructions-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      animation: fadeInUp 0.6s ease-out 0.2s backwards;
+    }
+    
+    .instructions-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 16px 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .instructions-title::before {
+      content: "📋";
+      font-size: 18px;
+    }
+    
+    .instructions-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    
+    .instructions-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
       font-size: 13px;
-      color: #5f6368;
+      color: #4a5568;
+      line-height: 1.5;
+    }
+
+    .instructions-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      font-weight: 600;
+      font-size: 12px;
+      flex-shrink: 0;
     }
     
-    .instructions li {
-      margin-bottom: 5px;
+    /* 特性标签 */
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      animation: fadeInUp 0.6s ease-out 0.3s backwards;
+    }
+
+    .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-icon {
+      font-size: 14px;
     }
     
+    /* 状态指示器 */
     .status {
-      text-align: center;
-      padding: 10px;
-      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(72, 187, 120, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(72, 187, 120, 0.3);
+      border-radius: 12px;
       font-size: 13px;
-      margin-top: 15px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      animation: fadeInUp 0.6s ease-out 0.4s backwards;
+    }
+
+    .status-icon {
+      width: 8px;
+      height: 8px;
+      background: #48bb78;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(72, 187, 120, 0.8);
+      animation: pulse 2s ease-in-out infinite;
     }
     
-    .status.active {
-      background: #e8f5e8;
-      color: #137333;
-      border: 1px solid #ceead6;
-    }
-    
+    /* 页脚 */
     .footer {
       text-align: center;
       font-size: 11px;
-      color: #9aa0a6;
-      margin-top: 15px;
+      opacity: 0.75;
+      animation: fadeIn 0.6s ease-out 0.5s backwards;
+    }
+
+    /* 动画效果 */
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+      }
+    }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo">📐</div>
-    <h1>Gemini LaTeX Copier</h1>
-  </div>
+  <div class="background-overlay"></div>
   
-  <div class="description">
-    Copy mathematical formulas from Google Gemini responses in LaTeX format with a single click.
-  </div>
-  
-  <div class="instructions">
-    <h3>How to use:</h3>
-    <ol>
-      <li>Navigate to gemini.google.com</li>
-      <li>Ask Gemini to generate mathematical formulas</li>
-      <li>Click on any formula to copy its LaTeX code</li>
-      <li>Paste the LaTeX wherever you need it</li>
-    </ol>
-  </div>
-  
-  <div class="status active" id="status">
-    ✅ Extension is active on Gemini
-  </div>
-  
-  <div class="footer">
-    v1.0.0 | Click formulas to copy LaTeX
+  <div class="container">
+    <div class="header">
+      <div class="logo-wrapper">
+        <img src="icons/icon128.png" alt="CopyTeX Icon" class="logo">
+      </div>
+      <h1>CopyTeX</h1>
+      <p class="subtitle">Instantly Copy Real LaTeX from AI chats</p>
+    </div>
+    
+    <div class="description-card">
+      <p class="description">
+        Copy mathematical formulas from Google Gemini, ChatGPT, DeepSeek, Grok, and Poe in LaTeX format with a double click.
+      </p>
+    </div>
+
+    <div class="features">
+      <div class="feature-tag">
+        <span class="feature-icon">✨</span>
+        <span>Double Click</span>
+      </div>
+      <div class="feature-tag">
+        <span class="feature-icon">🎯</span>
+        <span>Accurate</span>
+      </div>
+      <div class="feature-tag">
+        <span class="feature-icon">🌐</span>
+        <span>Multi-Platform</span>
+      </div>
+    </div>
+    
+    <div class="footer">
+      v1.0.1 | Double-click formulas to copy LaTeX
+    </div>
   </div>
 
   <script src="popup.js"></script>
