@@ -1,0 +1,528 @@
+/* CopyTeX - In-Page Export Button & Modal */
+
+/* ============================================================
+   Floating Action Button (FAB) — bottom-right corner
+   ============================================================ */
+.copytex-export-fab {
+    position: fixed;
+    z-index: 9970;
+    bottom: 28px;
+    right: 28px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #7f2d9c;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 0 4px 18px rgba(127, 45, 156, 0.35), 0 2px 6px rgba(0,0,0,0.12);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.2s ease;
+    opacity: 0.92;
+}
+.copytex-export-fab:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 8px 28px rgba(127, 45, 156, 0.45), 0 4px 10px rgba(0,0,0,0.15);
+    opacity: 1;
+}
+.copytex-export-fab:active {
+    transform: scale(0.95);
+}
+.copytex-export-fab svg {
+    width: 20px;
+    height: 20px;
+    color: #fff;
+    stroke: #fff;
+    fill: none;
+}
+
+/* Tooltip on hover */
+.copytex-export-fab::after {
+    content: 'Export Chat';
+    position: absolute;
+    right: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 5px 10px;
+    border-radius: 6px;
+    background: #1f2937;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.copytex-export-fab:hover::after {
+    opacity: 1;
+}
+
+/* ============================================================
+   Modal Overlay
+   ============================================================ */
+.copytex-export-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 2147483645;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.copytex-export-overlay.visible { opacity: 1; }
+
+/* ============================================================
+   Modal Dialog
+   ============================================================ */
+.copytex-export-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.08);
+    width: 90%;
+    max-width: 460px;
+    animation: copytexExportSlideIn 0.28s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+}
+
+@keyframes copytexExportSlideIn {
+    from { opacity: 0; transform: translateY(-20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-color-scheme: dark) {
+    .copytex-export-modal { background: #1e1e2e; }
+}
+
+/* ---- Header ---- */
+.copytex-export-modal-header {
+    padding: 20px 24px 16px;
+    background: #7f2d9c;
+    color: #fff;
+}
+.copytex-export-modal-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.copytex-export-modal-header h3 svg {
+    width: 20px; height: 20px;
+    stroke: #fff; fill: none;
+}
+.copytex-export-modal-header .copytex-export-subtitle {
+    font-size: 12px;
+    opacity: 0.85;
+    margin-top: 4px;
+}
+
+/* ---- Platform info bar inside modal ---- */
+.copytex-export-platform {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: #f8f9fc;
+    border-bottom: 1px solid #edf0f7;
+    font-size: 13px;
+    color: #4a5568;
+}
+.copytex-export-platform .ep-icon { font-size: 18px; display: flex; align-items: center; }
+.copytex-export-platform.ok .ep-icon { color: #7f2d9c; }
+.copytex-export-platform.warn .ep-icon { color: #854d0e; }
+.copytex-export-platform .ep-info { flex: 1; }
+.copytex-export-platform .ep-name { font-weight: 600; color: #2d3748; }
+.copytex-export-platform .ep-meta { font-size: 11px; color: #718096; margin-top: 1px; }
+.copytex-export-platform.ok { background: #f5f0ff; border-bottom-color: #e9d5f5; }
+.copytex-export-platform.ok .ep-name { color: #7f2d9c; }
+.copytex-export-platform.warn { background: #fefce8; border-bottom-color: #fef08a; }
+.copytex-export-platform.warn .ep-name { color: #854d0e; }
+
+@media (prefers-color-scheme: dark) {
+    .copytex-export-platform { background: #252538; border-bottom-color: #333; }
+    .copytex-export-platform .ep-name { color: #e2e8f0; }
+    .copytex-export-platform .ep-meta { color: #a0aec0; }
+    .copytex-export-platform.ok { background: #2d1a3e; border-bottom-color: #4a2d6a; }
+    .copytex-export-platform.ok .ep-name { color: #c084d6; }
+}
+
+/* ---- Body ---- */
+.copytex-export-modal-body {
+    padding: 20px 24px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Section label */
+.copytex-export-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.copytex-export-section-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+@media (prefers-color-scheme: dark) {
+    .copytex-export-section-label { color: #9ca3af; }
+}
+
+/* Radio cards (scope & format selectors) */
+.copytex-export-options {
+    display: flex;
+    gap: 8px;
+}
+.copytex-export-option {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+}
+.copytex-export-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0; height: 0;
+}
+.copytex-export-option-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px;
+    border-radius: 10px;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+.copytex-export-option-card:hover {
+    border-color: #c084d6;
+    background: #faf5ff;
+}
+.copytex-export-option input:checked + .copytex-export-option-card {
+    border-color: #7f2d9c;
+    background: #f5f0ff;
+    box-shadow: 0 0 0 3px rgba(127, 45, 156, 0.12);
+}
+.copytex-export-option-card .eo-icon {
+    font-size: 22px;
+    line-height: 1;
+    color: #6b7280;
+}
+.copytex-export-option-card .eo-icon svg {
+    display: block;
+}
+.copytex-export-option input:checked + .copytex-export-option-card .eo-icon {
+    color: #7f2d9c;
+}
+.copytex-export-option-card .eo-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+}
+.copytex-export-option-card .eo-desc {
+    font-size: 10px;
+    color: #9ca3af;
+    line-height: 1.3;
+}
+.copytex-export-option input:checked + .copytex-export-option-card .eo-title {
+    color: #7f2d9c;
+}
+
+@media (prefers-color-scheme: dark) {
+    .copytex-export-option-card { background: #252538; border-color: #404050; }
+    .copytex-export-option-card:hover { border-color: #7f2d9c; background: #2a2a40; }
+    .copytex-export-option input:checked + .copytex-export-option-card { background: #2d2050; border-color: #9b4dba; }
+    .copytex-export-option-card .eo-title { color: #e2e8f0; }
+    .copytex-export-option input:checked + .copytex-export-option-card .eo-title { color: #c084d6; }
+    .copytex-export-option-card .eo-desc { color: #6b7280; }
+}
+
+/* ---- Footer (buttons) ---- */
+.copytex-export-modal-footer {
+    padding: 16px 24px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.copytex-export-btn {
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+    outline: none;
+    font-family: inherit;
+}
+
+.copytex-export-btn-cancel {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+.copytex-export-btn-cancel:hover { background: #e5e7eb; }
+
+@media (prefers-color-scheme: dark) {
+    .copytex-export-btn-cancel { background: #333; color: #d1d5db; }
+    .copytex-export-btn-cancel:hover { background: #444; }
+}
+
+.copytex-export-btn-export {
+    background: #7f2d9c;
+    color: #fff;
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.copytex-export-btn-export:hover {
+    box-shadow: 0 4px 16px rgba(127, 45, 156, 0.4);
+    transform: translateY(-1px);
+}
+.copytex-export-btn-export:active { transform: scale(0.97); }
+.copytex-export-btn-export:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+.copytex-export-btn-export svg {
+    width: 16px; height: 16px;
+    stroke: currentColor; fill: none;
+}
+
+/* Success / Error state */
+.copytex-export-btn-export.success {
+    background: #7f2d9c;
+}
+.copytex-export-btn-export.error {
+    background: #dc2626;
+}
+
+/* ---- Status message ---- */
+.copytex-export-status {
+    padding: 0 24px 12px;
+    font-size: 11.5px;
+    color: #6b7280;
+    min-height: 18px;
+    text-align: center;
+}
+.copytex-export-status.ok { color: #7f2d9c; font-weight: 500; }
+.copytex-export-status.err { color: #dc2626; font-weight: 500; }
+
+@media (prefers-color-scheme: dark) {
+    .copytex-export-status { color: #9ca3af; }
+    .copytex-export-status.ok { color: #c084d6; }
+    .copytex-export-status.err { color: #f87171; }
+}
+
+/* ============================================================
+   Progress Modal (All Chats Export)
+   ============================================================ */
+.copytex-progress-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.08);
+    width: 90%;
+    max-width: 480px;
+    animation: copytexExportSlideIn 0.28s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+}
+@media (prefers-color-scheme: dark) {
+    .copytex-progress-modal { background: #1e1e2e; }
+}
+
+/* Header */
+.copytex-progress-header {
+    padding: 20px 24px 16px;
+    background: #7f2d9c;
+    color: #fff;
+}
+.copytex-progress-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.copytex-progress-header h3 svg {
+    width: 20px; height: 20px;
+    stroke: #fff; fill: none;
+}
+.copytex-progress-header .copytex-progress-subtitle {
+    font-size: 12px;
+    opacity: 0.85;
+    margin-top: 4px;
+}
+
+/* Progress bar */
+.copytex-progress-bar-wrap {
+    padding: 16px 24px 8px;
+}
+.copytex-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #6b7280;
+}
+@media (prefers-color-scheme: dark) {
+    .copytex-progress-info { color: #9ca3af; }
+}
+.copytex-progress-info .copytex-progress-count {
+    font-weight: 600;
+    color: #7f2d9c;
+}
+.copytex-progress-track {
+    width: 100%;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+@media (prefers-color-scheme: dark) {
+    .copytex-progress-track { background: #333; }
+}
+.copytex-progress-fill {
+    height: 100%;
+    background: #7f2d9c;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Current item indicator */
+.copytex-progress-current {
+    padding: 10px 24px;
+    font-size: 12px;
+    color: #4a5568;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+@media (prefers-color-scheme: dark) {
+    .copytex-progress-current { color: #9ca3af; }
+}
+.copytex-progress-current svg {
+    width: 14px; height: 14px;
+    stroke: #7f2d9c; fill: none;
+    flex-shrink: 0;
+}
+.copytex-progress-current .copytex-progress-current-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+/* Spinner animation */
+.copytex-progress-current svg.spinning {
+    animation: copytexSpin 1s linear infinite;
+}
+@keyframes copytexSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Conversation log list */
+.copytex-progress-log {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 0 24px;
+    margin: 4px 0;
+}
+.copytex-progress-log-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 11.5px;
+    color: #6b7280;
+    border-bottom: 1px solid #f3f4f6;
+}
+@media (prefers-color-scheme: dark) {
+    .copytex-progress-log-item { color: #9ca3af; border-bottom-color: #2d2d44; }
+}
+.copytex-progress-log-item:last-child { border-bottom: none; }
+.copytex-progress-log-item svg {
+    width: 13px; height: 13px;
+    flex-shrink: 0;
+    fill: none;
+}
+.copytex-progress-log-item.done svg { stroke: #7f2d9c; }
+.copytex-progress-log-item.skipped svg { stroke: #9ca3af; }
+.copytex-progress-log-item .pli-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.copytex-progress-log-item .pli-count {
+    font-size: 10px;
+    color: #7f2d9c;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.copytex-progress-log-item.skipped .pli-count { color: #9ca3af; }
+
+/* Footer */
+.copytex-progress-footer {
+    padding: 12px 24px 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.copytex-progress-footer .copytex-progress-cancel-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: #f3f4f6;
+    color: #4b5563;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+.copytex-progress-footer .copytex-progress-cancel-btn:hover { background: #e5e7eb; }
+@media (prefers-color-scheme: dark) {
+    .copytex-progress-footer .copytex-progress-cancel-btn { background: #333; color: #d1d5db; }
+    .copytex-progress-footer .copytex-progress-cancel-btn:hover { background: #444; }
+}
+
+/* Scrollbar for log */
+.copytex-progress-log::-webkit-scrollbar { width: 4px; }
+.copytex-progress-log::-webkit-scrollbar-track { background: transparent; }
+.copytex-progress-log::-webkit-scrollbar-thumb { background: rgba(127,45,156,0.2); border-radius: 2px; }
+
+/* Final status in progress modal */
+.copytex-progress-final {
+    padding: 12px 24px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7f2d9c;
+}
+@media (prefers-color-scheme: dark) {
+    .copytex-progress-final { color: #c084d6; }
+}

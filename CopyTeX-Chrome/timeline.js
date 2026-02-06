@@ -1,8 +1,12 @@
 // CopyTeX - Timeline
 // Interactive conversation navigation sidebar for AI chat platforms
+// Dots are distributed proportionally based on actual message positions (like AITimeline)
 
 (function () {
     'use strict';
+
+    const TRACK_PADDING = 14;   // px padding top/bottom inside the bar
+    const MIN_DOT_GAP = 18;     // minimum px gap between dots
 
     // ============================================================
     //  Platform adapters — selectors for user messages per site
@@ -11,88 +15,43 @@
         chatgpt: {
             hosts: ['chatgpt.com', 'chat.openai.com'],
             userSelector: '[data-message-author-role="user"]',
-            containerUp: 'main',
-            position: { top: '70px', right: '16px', bottom: '140px' },
+            position: { top: 70, right: 16, bottom: 140 },
             getText: el => {
                 const article = el.closest('article') || el.closest('[data-testid^="conversation-turn"]') || el;
                 const c = article.querySelector('.whitespace-pre-wrap') || el;
                 return (c.textContent || '').trim();
             },
             isConversation: () => /\/c\//.test(location.pathname) || document.querySelector('[data-message-author-role]'),
-            getScrollContainer: () => {
-                const main = document.querySelector('main');
-                if (!main) return null;
-                let el = main;
-                while (el && el !== document.body) {
-                    const s = getComputedStyle(el).overflowY;
-                    if (s === 'auto' || s === 'scroll') return el;
-                    el = el.parentElement;
-                }
-                return document.scrollingElement || document.documentElement;
-            }
+            getScrollContainer: () => findScrollable(document.querySelector('main'))
         },
         gemini: {
             hosts: ['gemini.google.com'],
             userSelector: 'user-query, .user-query, .query-content',
-            containerUp: 'main',
-            position: { top: '70px', right: '16px', bottom: '160px' },
+            position: { top: 70, right: 16, bottom: 160 },
             getText: el => (el.textContent || '').trim(),
             isConversation: () => /\/app\//.test(location.pathname) || document.querySelector('user-query, .user-query'),
-            getScrollContainer: () => {
-                const c = document.querySelector('.conversation-container, main');
-                if (!c) return document.scrollingElement || document.documentElement;
-                let el = c;
-                while (el && el !== document.body) {
-                    const s = getComputedStyle(el).overflowY;
-                    if (s === 'auto' || s === 'scroll') return el;
-                    el = el.parentElement;
-                }
-                return document.scrollingElement || document.documentElement;
-            }
+            getScrollContainer: () => findScrollable(document.querySelector('.conversation-container, main'))
         },
         deepseek: {
             hosts: ['chat.deepseek.com'],
             userSelector: '[class*="chat-message"][class*="user"], [data-role="user"], [class*="msg-item"][class*="user"]',
-            containerUp: 'main',
-            position: { top: '70px', right: '16px', bottom: '140px' },
+            position: { top: 70, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
             isConversation: () => document.querySelector('[class*="chat-message"], [class*="msg-item"]'),
-            getScrollContainer: () => {
-                const c = document.querySelector('[class*="chat-container"], main');
-                if (!c) return document.scrollingElement || document.documentElement;
-                let el = c;
-                while (el && el !== document.body) {
-                    const s = getComputedStyle(el).overflowY;
-                    if (s === 'auto' || s === 'scroll') return el;
-                    el = el.parentElement;
-                }
-                return document.scrollingElement || document.documentElement;
-            }
+            getScrollContainer: () => findScrollable(document.querySelector('[class*="chat-container"], main'))
         },
         claude: {
             hosts: ['claude.ai'],
             userSelector: '[data-testid="user-message"], [class*="human-message"], [class*="user-message"]',
-            containerUp: 'main',
-            position: { top: '60px', right: '16px', bottom: '140px' },
+            position: { top: 60, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
             isConversation: () => /\/chat\//.test(location.pathname) || document.querySelector('[data-testid="user-message"]'),
-            getScrollContainer: () => {
-                const main = document.querySelector('main, [class*="conversation"]');
-                if (!main) return document.scrollingElement || document.documentElement;
-                let el = main;
-                while (el && el !== document.body) {
-                    const s = getComputedStyle(el).overflowY;
-                    if (s === 'auto' || s === 'scroll') return el;
-                    el = el.parentElement;
-                }
-                return document.scrollingElement || document.documentElement;
-            }
+            getScrollContainer: () => findScrollable(document.querySelector('main, [class*="conversation"]'))
         },
         grok: {
             hosts: ['grok.com'],
             userSelector: '[class*="message"][class*="user"], [class*="human"]',
-            containerUp: 'main',
-            position: { top: '70px', right: '16px', bottom: '140px' },
+            position: { top: 70, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
             isConversation: () => document.querySelector('[class*="message"]'),
             getScrollContainer: () => document.scrollingElement || document.documentElement
@@ -100,8 +59,7 @@
         kimi: {
             hosts: ['kimi.ai', 'kimi.moonshot.cn'],
             userSelector: '[class*="chat-message"][class*="user"], [data-role="user"]',
-            containerUp: 'main',
-            position: { top: '70px', right: '16px', bottom: '140px' },
+            position: { top: 70, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
             isConversation: () => document.querySelector('[class*="chat-message"]'),
             getScrollContainer: () => document.scrollingElement || document.documentElement
@@ -109,23 +67,63 @@
         poe: {
             hosts: ['poe.com'],
             userSelector: '[class*="Message"][class*="human"], [class*="Message"][class*="Human"]',
-            containerUp: 'main',
-            position: { top: '70px', right: '16px', bottom: '140px' },
+            position: { top: 70, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
             isConversation: () => document.querySelector('[class*="Message"]'),
             getScrollContainer: () => document.scrollingElement || document.documentElement
         }
     };
 
+    function findScrollable(startEl) {
+        let el = startEl;
+        while (el && el !== document.body) {
+            const s = getComputedStyle(el).overflowY;
+            if (s === 'auto' || s === 'scroll') return el;
+            el = el.parentElement;
+        }
+        return document.scrollingElement || document.documentElement;
+    }
+
     function detectAdapter() {
         const hostname = location.hostname;
-        const url = location.href;
         for (const [id, adapter] of Object.entries(TIMELINE_ADAPTERS)) {
-            if (adapter.hosts.some(h => hostname.includes(h) || url.includes(h))) {
+            if (adapter.hosts.some(h => hostname.includes(h))) {
                 return { id, ...adapter };
             }
         }
         return null;
+    }
+
+    // ============================================================
+    //  Min-gap enforcement (from AITimeline)
+    //  Ensures dots don't overlap by enforcing minimum pixel distance
+    // ============================================================
+    function applyMinGap(positions, minTop, maxTop, gap) {
+        const n = positions.length;
+        if (n === 0) return positions;
+        const out = positions.slice();
+        // Clamp + forward pass
+        out[0] = Math.max(minTop, Math.min(out[0], maxTop));
+        for (let i = 1; i < n; i++) {
+            out[i] = Math.max(out[i], out[i - 1] + gap);
+        }
+        // If last exceeds max, backward pass
+        if (out[n - 1] > maxTop) {
+            out[n - 1] = maxTop;
+            for (let i = n - 2; i >= 0; i--) {
+                out[i] = Math.min(out[i], out[i + 1] - gap);
+            }
+            if (out[0] < minTop) {
+                out[0] = minTop;
+                for (let i = 1; i < n; i++) {
+                    out[i] = Math.max(out[i], out[i - 1] + gap);
+                }
+            }
+        }
+        for (let i = 0; i < n; i++) {
+            out[i] = Math.max(minTop, Math.min(out[i], maxTop));
+        }
+        return out;
     }
 
     // ============================================================
@@ -137,10 +135,8 @@
             this.wrapper = null;
             this.bar = null;
             this.track = null;
-            this.toggleBtn = null;
             this.tip = null;
-            this.dots = [];
-            this.userMessages = [];
+            this.markers = [];       // { element, dotElement, visualN, dotTopPx, text }
             this.activeIndex = -1;
             this.scrollContainer = null;
             this.observer = null;
@@ -150,10 +146,10 @@
             this._lastUrl = location.href;
             this._urlCheckInterval = null;
             this._resizeHandler = null;
+            this._barHeight = 0;
         }
 
         async init() {
-            // Wait for user messages to appear
             const found = await this._waitForMessages(8000);
             if (!found) return;
 
@@ -161,12 +157,10 @@
             if (!this.scrollContainer) return;
 
             this._injectUI();
-            this._renderDots();
+            this._recalcAndRender();
             this._bindEvents();
             this._observeDom();
-            this._syncActive();
 
-            // URL change detection (SPA navigation)
             this._urlCheckInterval = setInterval(() => {
                 if (location.href !== this._lastUrl) {
                     this._lastUrl = location.href;
@@ -179,36 +173,38 @@
             return new Promise(resolve => {
                 const check = () => {
                     const msgs = document.querySelectorAll(this.adapter.userSelector);
-                    if (msgs.length > 0) { resolve(true); return; }
+                    if (msgs.length > 0) { resolve(true); return true; }
                     return false;
                 };
                 if (check()) return;
                 const start = Date.now();
-                const interval = setInterval(() => {
-                    if (check()) { clearInterval(interval); return; }
-                    if (Date.now() - start > timeout) { clearInterval(interval); resolve(false); }
+                const iv = setInterval(() => {
+                    if (check()) { clearInterval(iv); return; }
+                    if (Date.now() - start > timeout) { clearInterval(iv); resolve(false); }
                 }, 400);
             });
         }
 
+        // ---- UI injection ----
         _injectUI() {
-            // Wrapper
+            const pos = this.adapter.position;
+
+            // Wrapper — fixed, spanning from top to bottom
             this.wrapper = document.createElement('div');
             this.wrapper.className = 'copytex-timeline-wrapper';
-            const pos = this.adapter.position;
-            if (pos.top) this.wrapper.style.top = pos.top;
-            if (pos.right) { this.wrapper.style.right = pos.right; this.wrapper.style.left = 'auto'; }
+            this.wrapper.style.top = pos.top + 'px';
+            this.wrapper.style.right = pos.right + 'px';
+            this.wrapper.style.left = 'auto';
 
-            // Bar
+            // Bar — explicit height = viewport - top - bottom
             this.bar = document.createElement('div');
             this.bar.className = 'copytex-timeline-bar';
-            if (pos.bottom) {
-                this.bar.style.height = `calc(100vh - ${pos.top} - ${pos.bottom})`;
-            }
+            this._updateBarHeight();
 
-            // Track
+            // Track (same height as bar, relative container for absolute dots)
             this.track = document.createElement('div');
             this.track.className = 'copytex-timeline-track';
+
             this.bar.appendChild(this.track);
             this.wrapper.appendChild(this.bar);
             document.body.appendChild(this.wrapper);
@@ -218,37 +214,74 @@
             this.tip.className = 'copytex-timeline-tip';
             document.body.appendChild(this.tip);
 
-            // Toggle button
-            this.toggleBtn = document.createElement('button');
-            this.toggleBtn.className = 'copytex-timeline-toggle';
-            this.toggleBtn.innerHTML = '«';
-            this.toggleBtn.title = 'Toggle timeline';
-            this.toggleBtn.addEventListener('click', () => this._toggle());
-            document.body.appendChild(this.toggleBtn);
-
-            // Show toggle on wrapper hover
-            this.wrapper.addEventListener('mouseenter', () => {
-                if (!this.isCollapsed) this.toggleBtn.classList.add('visible');
-            });
-            this.wrapper.addEventListener('mouseleave', () => {
-                setTimeout(() => {
-                    if (!this.toggleBtn.matches(':hover')) this.toggleBtn.classList.remove('visible');
-                }, 60);
-            });
-            this.toggleBtn.addEventListener('mouseleave', () => {
-                this.toggleBtn.classList.remove('visible');
-            });
         }
 
-        _renderDots() {
-            this.track.innerHTML = '';
-            this.dots = [];
-            this.userMessages = Array.from(document.querySelectorAll(this.adapter.userSelector));
+        _updateBarHeight() {
+            const pos = this.adapter.position;
+            const h = window.innerHeight - pos.top - pos.bottom;
+            this._barHeight = Math.max(60, h);
+            this.bar.style.height = this._barHeight + 'px';
+        }
 
-            this.userMessages.forEach((msg, i) => {
+        // ---- Core: calculate positions and render dots ----
+        _recalcAndRender() {
+            // Gather user messages
+            const msgElements = Array.from(document.querySelectorAll(this.adapter.userSelector));
+            if (msgElements.length === 0) {
+                this.track.innerHTML = '';
+                this.markers = [];
+                return;
+            }
+
+            // Get offset of each message relative to scroll container's content top
+            const sc = this.scrollContainer;
+            const isDocScroll = (sc === document.documentElement || sc === document.body);
+
+            const getOffsetTop = (el) => {
+                const elRect = el.getBoundingClientRect();
+                if (isDocScroll) {
+                    return elRect.top + window.scrollY;
+                }
+                const cRect = sc.getBoundingClientRect();
+                return elRect.top - cRect.top + sc.scrollTop;
+            };
+
+            // Sort by position (top to bottom)
+            const sorted = msgElements.slice().sort((a, b) => {
+                return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+            });
+
+            const offsets = sorted.map(el => getOffsetTop(el));
+            const firstOffset = offsets[0];
+            const lastOffset = offsets[offsets.length - 1];
+            const contentSpan = Math.max(1, lastOffset - firstOffset);
+
+            // Compute visualN (0~1) for each message
+            const visualNs = offsets.map(off => {
+                const n = (off - firstOffset) / contentSpan;
+                return Math.max(0, Math.min(1, n));
+            });
+
+            // Update bar height
+            this._updateBarHeight();
+
+            // Map visualN to pixel positions within the track
+            const usable = Math.max(1, this._barHeight - 2 * TRACK_PADDING);
+            const minTop = TRACK_PADDING;
+            const maxTop = TRACK_PADDING + usable;
+
+            const desiredPx = visualNs.map(vn => minTop + vn * usable);
+            const adjustedPx = applyMinGap(desiredPx, minTop, maxTop, MIN_DOT_GAP);
+
+            // Clear old dots
+            this.track.innerHTML = '';
+            this.markers = [];
+
+            sorted.forEach((msg, i) => {
                 const dot = document.createElement('button');
                 dot.className = 'copytex-timeline-dot';
-                dot.setAttribute('aria-label', `Message ${i + 1}`);
+                dot.style.top = adjustedPx[i] + 'px';
+                dot.setAttribute('aria-label', this.adapter.getText(msg));
                 dot.dataset.index = i;
 
                 dot.addEventListener('click', () => this._scrollToMessage(i));
@@ -256,28 +289,34 @@
                 dot.addEventListener('mouseleave', () => this._hideTip());
 
                 this.track.appendChild(dot);
-                this.dots.push(dot);
+                this.markers.push({
+                    element: msg,
+                    dotElement: dot,
+                    visualN: visualNs[i],
+                    dotTopPx: adjustedPx[i],
+                    offsetTop: offsets[i]
+                });
             });
 
             this._syncActive();
         }
 
         _scrollToMessage(index) {
-            const msg = this.userMessages[index];
-            if (!msg || !msg.isConnected) return;
+            const m = this.markers[index];
+            if (!m || !m.element || !m.element.isConnected) return;
 
-            msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Brief highlight flash
-            const origBg = msg.style.backgroundColor;
-            msg.style.transition = 'background-color 0.3s ease';
-            msg.style.backgroundColor = 'rgba(102, 126, 234, 0.08)';
-            setTimeout(() => { msg.style.backgroundColor = origBg; }, 1200);
+            m.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Highlight flash
+            const orig = m.element.style.backgroundColor;
+            m.element.style.transition = 'background-color 0.3s ease';
+            m.element.style.backgroundColor = 'rgba(127, 45, 156, 0.08)';
+            setTimeout(() => { m.element.style.backgroundColor = orig; }, 1200);
         }
 
         _showTip(dot, index) {
-            const msg = this.userMessages[index];
-            if (!msg) return;
-            let text = this.adapter.getText(msg);
+            const m = this.markers[index];
+            if (!m) return;
+            let text = this.adapter.getText(m.element);
             if (text.length > 60) text = text.substring(0, 60) + '…';
             if (!text) text = `Message ${index + 1}`;
 
@@ -285,11 +324,15 @@
             this.tip.classList.add('visible');
 
             const dotRect = dot.getBoundingClientRect();
+            this.tip.style.visibility = 'hidden';
+            this.tip.style.display = 'block';
             const tipRect = this.tip.getBoundingClientRect();
+            this.tip.style.visibility = '';
+
             let top = dotRect.top + dotRect.height / 2 - tipRect.height / 2;
             top = Math.max(4, Math.min(top, window.innerHeight - tipRect.height - 4));
-            let left = dotRect.left - tipRect.width - 10;
-            if (left < 4) left = dotRect.right + 10;
+            let left = dotRect.left - tipRect.width - 12;
+            if (left < 4) left = dotRect.right + 12;
 
             this.tip.style.top = `${top}px`;
             this.tip.style.left = `${left}px`;
@@ -303,40 +346,39 @@
             }, 80);
         }
 
+        // ---- Active dot sync (scroll-based) ----
         _syncActive() {
-            if (!this.scrollContainer || this.userMessages.length === 0) return;
+            if (!this.scrollContainer || this.markers.length === 0) return;
+
+            const sc = this.scrollContainer;
+            const isDoc = (sc === document.documentElement || sc === document.body);
 
             let activeIdx = -1;
-            const scrollTop = this.scrollContainer === document.documentElement || this.scrollContainer === document.body
-                ? window.scrollY
-                : this.scrollContainer.scrollTop;
-
-            for (let i = this.userMessages.length - 1; i >= 0; i--) {
-                const msg = this.userMessages[i];
+            for (let i = this.markers.length - 1; i >= 0; i--) {
+                const msg = this.markers[i].element;
                 if (!msg.isConnected) continue;
                 const rect = msg.getBoundingClientRect();
-                const containerRect = this.scrollContainer.getBoundingClientRect
-                    ? this.scrollContainer.getBoundingClientRect()
-                    : { top: 0 };
-                if (rect.top <= containerRect.top + 150) {
+                const containerTop = isDoc ? 0 : sc.getBoundingClientRect().top;
+                // Consider a message "active" if its top is within upper 40% of visible area
+                if (rect.top <= containerTop + window.innerHeight * 0.4) {
                     activeIdx = i;
                     break;
                 }
             }
-
-            if (activeIdx === -1 && this.userMessages.length > 0) activeIdx = 0;
+            if (activeIdx === -1 && this.markers.length > 0) activeIdx = 0;
 
             if (activeIdx !== this.activeIndex) {
-                if (this.activeIndex >= 0 && this.activeIndex < this.dots.length) {
-                    this.dots[this.activeIndex].classList.remove('active');
+                if (this.activeIndex >= 0 && this.activeIndex < this.markers.length) {
+                    this.markers[this.activeIndex].dotElement.classList.remove('active');
                 }
                 this.activeIndex = activeIdx;
-                if (activeIdx >= 0 && activeIdx < this.dots.length) {
-                    this.dots[activeIdx].classList.add('active');
+                if (activeIdx >= 0 && activeIdx < this.markers.length) {
+                    this.markers[activeIdx].dotElement.classList.add('active');
                 }
             }
         }
 
+        // ---- Events ----
         _bindEvents() {
             let rafPending = false;
             this.scrollHandler = () => {
@@ -348,14 +390,18 @@
                 });
             };
 
-            if (this.scrollContainer === document.documentElement || this.scrollContainer === document.body) {
+            const sc = this.scrollContainer;
+            if (sc === document.documentElement || sc === document.body) {
                 window.addEventListener('scroll', this.scrollHandler, { passive: true });
             } else {
-                this.scrollContainer.addEventListener('scroll', this.scrollHandler, { passive: true });
+                sc.addEventListener('scroll', this.scrollHandler, { passive: true });
             }
 
             this._resizeHandler = () => {
-                requestAnimationFrame(() => this._syncActive());
+                requestAnimationFrame(() => {
+                    this._updateBarHeight();
+                    this._recalcAndRender();
+                });
             };
             window.addEventListener('resize', this._resizeHandler, { passive: true });
         }
@@ -366,36 +412,24 @@
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
                     const newMsgs = document.querySelectorAll(this.adapter.userSelector);
-                    if (newMsgs.length !== this.userMessages.length) {
-                        this._renderDots();
+                    if (newMsgs.length !== this.markers.length) {
+                        this._recalcAndRender();
                     }
-                }, 600);
+                }, 800);
             });
             this.observer.observe(document.body, { childList: true, subtree: true });
         }
 
-        _toggle() {
-            this.isCollapsed = !this.isCollapsed;
-            if (this.isCollapsed) {
-                this.wrapper.classList.add('hidden');
-                this.toggleBtn.innerHTML = '»';
-                this.toggleBtn.classList.add('visible');
-            } else {
-                this.wrapper.classList.remove('hidden');
-                this.toggleBtn.innerHTML = '«';
-                this.toggleBtn.classList.remove('visible');
-            }
-        }
-
         _onUrlChange() {
-            // Re-check if still on a conversation page
             setTimeout(() => {
                 if (this.adapter.isConversation()) {
-                    this._renderDots();
+                    this.scrollContainer = this.adapter.getScrollContainer();
+                    this._recalcAndRender();
+                    this.wrapper.classList.remove('hidden');
                 } else {
                     this.wrapper.classList.add('hidden');
                 }
-            }, 500);
+            }, 600);
         }
 
         destroy() {
@@ -409,7 +443,6 @@
             }
             if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
             if (this.wrapper) this.wrapper.remove();
-            if (this.toggleBtn) this.toggleBtn.remove();
             if (this.tip) this.tip.remove();
         }
     }
@@ -423,7 +456,6 @@
         const adapter = detectAdapter();
         if (!adapter) return;
         if (!adapter.isConversation()) {
-            // Retry later — SPA might not have loaded conversation yet
             setTimeout(() => {
                 if (adapter.isConversation()) {
                     timeline = new CopyTexTimeline(adapter);
@@ -439,7 +471,6 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initTimeline, { once: true });
     } else {
-        // Small delay to let SPA routing complete
         setTimeout(initTimeline, 500);
     }
 

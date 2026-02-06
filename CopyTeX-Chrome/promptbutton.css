@@ -6,21 +6,21 @@
     width: 30px;
     height: 30px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #7f2d9c;
     border: none;
     cursor: pointer;
     display: none;
     align-items: center;
     justify-content: center;
     padding: 0;
-    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 10px rgba(127, 45, 156, 0.3);
     transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
     opacity: 0.85;
 }
 
 .copytex-prompt-btn:hover {
     transform: scale(1.08);
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.45);
+    box-shadow: 0 4px 16px rgba(127, 45, 156, 0.45);
     opacity: 1;
 }
 
@@ -110,28 +110,28 @@
 .copytex-prompt-header-title svg {
     width: 14px;
     height: 14px;
-    color: #667eea;
-    fill: #667eea;
-    stroke: none;
+    color: #7f2d9c;
+    stroke: #7f2d9c;
+    fill: none;
 }
 
 .copytex-prompt-header-add {
     width: 24px;
     height: 24px;
     border: none;
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(127, 45, 156, 0.1);
     border-radius: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #667eea;
+    color: #7f2d9c;
     transition: background-color 0.15s ease;
     padding: 0;
 }
 
 .copytex-prompt-header-add:hover {
-    background: rgba(102, 126, 234, 0.2);
+    background: rgba(127, 45, 156, 0.2);
 }
 
 .copytex-prompt-header-add svg {
@@ -165,12 +165,12 @@
 }
 
 .copytex-prompt-item:hover {
-    background: rgba(102, 126, 234, 0.06);
+    background: rgba(127, 45, 156, 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
     .copytex-prompt-item:hover {
-        background: rgba(102, 126, 234, 0.12);
+        background: rgba(127, 45, 156, 0.12);
     }
 }
 
@@ -251,3 +251,175 @@
 .copytex-prompt-item-delete:hover {
     background: rgba(239, 68, 68, 0.2);
 }
+
+/* ============================================================
+   Custom Add-Prompt Modal (replaces browser prompt())
+   ============================================================ */
+
+/* Overlay */
+.copytex-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.45);
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.copytex-modal-overlay.visible { opacity: 1; }
+
+/* Dialog */
+.copytex-modal {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 420px;
+    animation: copytexModalSlideIn 0.25s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@keyframes copytexModalSlideIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-color-scheme: dark) {
+    .copytex-modal { background: #1e1e2e; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+}
+html.dark .copytex-modal { background: #1e1e2e; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+
+/* Header */
+.copytex-modal-header {
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.copytex-modal-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.copytex-modal-header h3 svg {
+    width: 18px; height: 18px;
+    fill: none; stroke: #7f2d9c;
+}
+
+@media (prefers-color-scheme: dark) {
+    .copytex-modal-header { border-bottom-color: #333; }
+    .copytex-modal-header h3 { color: #f3f4f6; }
+}
+html.dark .copytex-modal-header { border-bottom-color: #333; }
+html.dark .copytex-modal-header h3 { color: #f3f4f6; }
+
+/* Body */
+.copytex-modal-body {
+    padding: 18px 24px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.copytex-modal-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 6px;
+}
+@media (prefers-color-scheme: dark) { .copytex-modal-field label { color: #a0aec0; } }
+html.dark .copytex-modal-field label { color: #a0aec0; }
+
+.copytex-modal-input {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+    font-family: inherit;
+    color: #1f2937;
+    background: #fff;
+}
+.copytex-modal-input:hover { border-color: #9ca3af; }
+.copytex-modal-input:focus { border-color: #7f2d9c; box-shadow: 0 0 0 3px rgba(127,45,156,0.15); }
+.copytex-modal-input::placeholder { color: #9ca3af; }
+
+@media (prefers-color-scheme: dark) {
+    .copytex-modal-input { background: #161622; border-color: #404040; color: #f3f4f6; }
+    .copytex-modal-input:hover { border-color: #6b7280; }
+    .copytex-modal-input:focus { border-color: #a855c7; box-shadow: 0 0 0 3px rgba(127,45,156,0.2); }
+    .copytex-modal-input::placeholder { color: #6b7280; }
+}
+html.dark .copytex-modal-input { background: #161622; border-color: #404040; color: #f3f4f6; }
+html.dark .copytex-modal-input:hover { border-color: #6b7280; }
+html.dark .copytex-modal-input:focus { border-color: #a855c7; box-shadow: 0 0 0 3px rgba(127,45,156,0.2); }
+html.dark .copytex-modal-input::placeholder { color: #6b7280; }
+
+textarea.copytex-modal-input {
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+/* Error state */
+.copytex-modal-input.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.12);
+}
+
+.copytex-modal-error {
+    font-size: 11px;
+    color: #ef4444;
+    margin-top: 4px;
+    min-height: 16px;
+}
+
+/* Footer */
+.copytex-modal-footer {
+    padding: 14px 24px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.copytex-modal-btn {
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: none;
+    outline: none;
+    font-family: inherit;
+}
+
+.copytex-modal-btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+}
+.copytex-modal-btn-cancel:hover { background: #e5e7eb; }
+
+@media (prefers-color-scheme: dark) {
+    .copytex-modal-btn-cancel { background: #333; color: #d1d5db; }
+    .copytex-modal-btn-cancel:hover { background: #444; }
+}
+html.dark .copytex-modal-btn-cancel { background: #333; color: #d1d5db; }
+html.dark .copytex-modal-btn-cancel:hover { background: #444; }
+
+.copytex-modal-btn-confirm {
+    background: #7f2d9c;
+    color: #fff;
+}
+.copytex-modal-btn-confirm:hover { box-shadow: 0 4px 14px rgba(127,45,156,0.35); transform: translateY(-1px); }
+.copytex-modal-btn-confirm:active { transform: scale(0.97); }

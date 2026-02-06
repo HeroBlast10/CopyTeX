@@ -629,6 +629,18 @@
         };
     }
 
+    // --- Expose API for in-page export button (shared content-script context) ---
+    window._copytexExporter = {
+        detectPlatform,
+        extractMessages,
+        exportConversation,
+        getConversationTitle,
+        formatAsMarkdown,
+        formatAsJSON,
+        downloadFile,
+        sanitizeFilename
+    };
+
     // --- Message Listener (communication with popup) ---
 
     if (browserAPI?.runtime?.onMessage) {
@@ -646,6 +658,22 @@
 
             if (request.type === 'exportConversation') {
                 const result = exportConversation(request.format || 'markdown');
+                sendResponse(result);
+                return true;
+            }
+
+            if (request.type === 'extractForExport') {
+                const messages = extractMessages();
+                const title = getConversationTitle();
+                const result = { title, messageCount: messages.length };
+                if (messages.length > 0) {
+                    if (request.format === 'markdown' || request.format === 'both') {
+                        result.markdown = formatAsMarkdown(messages, title);
+                    }
+                    if (request.format === 'json' || request.format === 'both') {
+                        result.json = formatAsJSON(messages, title);
+                    }
+                }
                 sendResponse(result);
                 return true;
             }

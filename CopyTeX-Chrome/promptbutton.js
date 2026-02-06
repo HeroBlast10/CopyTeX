@@ -17,18 +17,21 @@
         chatgpt: {
             hosts: ['chatgpt.com', 'chat.openai.com'],
             inputSelector: '#prompt-textarea, [id="prompt-textarea"], textarea[data-id="root"]',
+            containerSelector: 'form, [class*="composer"]',
             getOffset: () => ({ top: 8, left: 0 }),
             insertText: (input, text) => insertContentEditable(input, text)
         },
         gemini: {
             hosts: ['gemini.google.com'],
             inputSelector: '.ql-editor, [contenteditable="true"][aria-label], rich-textarea [contenteditable]',
+            containerSelector: '.input-area-container, .text-input-field_textarea-wrapper, rich-textarea',
             getOffset: () => ({ top: 8, left: 0 }),
             insertText: (input, text) => insertContentEditable(input, text)
         },
         deepseek: {
             hosts: ['chat.deepseek.com'],
             inputSelector: 'textarea, [contenteditable="true"]',
+            containerSelector: '[class*="chat-input"], [class*="input-wrap"]',
             getOffset: () => ({ top: 8, left: 0 }),
             insertText: (input, text) => {
                 if (input.isContentEditable) insertContentEditable(input, text);
@@ -38,12 +41,14 @@
         claude: {
             hosts: ['claude.ai'],
             inputSelector: '[contenteditable="true"].ProseMirror, [contenteditable="true"]',
+            containerSelector: '[class*="input-container"], form',
             getOffset: () => ({ top: 8, left: 0 }),
             insertText: (input, text) => insertContentEditable(input, text)
         },
         grok: {
             hosts: ['grok.com'],
             inputSelector: 'textarea, [contenteditable="true"]',
+            containerSelector: 'form, [class*="input-wrap"]',
             getOffset: () => ({ top: 8, left: 0 }),
             insertText: (input, text) => {
                 if (input.isContentEditable) insertContentEditable(input, text);
@@ -53,6 +58,7 @@
         kimi: {
             hosts: ['kimi.ai', 'kimi.moonshot.cn'],
             inputSelector: 'textarea, [contenteditable="true"]',
+            containerSelector: '[class*="chat-input"], form',
             getOffset: () => ({ top: 8, left: 0 }),
             insertText: (input, text) => {
                 if (input.isContentEditable) insertContentEditable(input, text);
@@ -62,6 +68,7 @@
         poe: {
             hosts: ['poe.com'],
             inputSelector: 'textarea, [contenteditable="true"]',
+            containerSelector: '[class*="ChatInput"], form',
             getOffset: () => ({ top: 8, left: 0 }),
             insertText: (input, text) => {
                 if (input.isContentEditable) insertContentEditable(input, text);
@@ -155,7 +162,8 @@
             this.button.className = 'copytex-prompt-btn';
             this.button.innerHTML = `
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
                 </svg>`;
             this.button.style.display = 'none';
             this.button.addEventListener('click', (e) => {
@@ -201,12 +209,22 @@
             }
         }
 
+        _getInputContainer() {
+            if (!this.inputElement) return null;
+            if (this.adapter.containerSelector) {
+                const container = this.inputElement.closest(this.adapter.containerSelector);
+                if (container) return container;
+            }
+            return this.inputElement;
+        }
+
         _updatePosition() {
             if (!this.button || !this.inputElement || !document.body.contains(this.inputElement)) {
                 this._hideButton();
                 return;
             }
-            const rect = this.inputElement.getBoundingClientRect();
+            const container = this._getInputContainer();
+            const rect = container.getBoundingClientRect();
             if (rect.width === 0 || rect.height === 0) { this._hideButton(); return; }
 
             const offset = this.adapter.getOffset();
@@ -215,7 +233,7 @@
             const btnRect = this.button.getBoundingClientRect();
 
             const top = rect.top + offset.top;
-            const left = rect.left - btnRect.width - 8 + offset.left;
+            const left = rect.left - btnRect.width - 12 + offset.left;
 
             this.button.style.top = `${Math.max(8, Math.min(top, window.innerHeight - btnRect.height - 8))}px`;
             this.button.style.left = `${Math.max(8, left)}px`;
@@ -247,7 +265,7 @@
             header.className = 'copytex-prompt-header';
             header.innerHTML = `
                 <div class="copytex-prompt-header-title">
-                    <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
                     <span>Prompts</span>
                 </div>
                 <button class="copytex-prompt-header-add" title="Add prompt">
@@ -299,13 +317,15 @@
             this.dropdown.appendChild(body);
             document.body.appendChild(this.dropdown);
 
-            // Position above button
+            // Position directly above the button
             if (this.button) {
                 const btnRect = this.button.getBoundingClientRect();
+                const ddRect = this.dropdown.getBoundingClientRect();
                 let left = btnRect.left;
                 if (left + 300 > window.innerWidth - 8) left = window.innerWidth - 308;
                 left = Math.max(8, left);
-                let top = Math.max(20, btnRect.top - 8 - 360);
+                let top = btnRect.top - ddRect.height - 8;
+                if (top < 8) top = 8;
                 this.dropdown.style.left = `${left}px`;
                 this.dropdown.style.top = `${top}px`;
             }
@@ -338,14 +358,119 @@
         }
 
         _showAddPromptDialog() {
-            // Simple prompt dialog using browser prompt()
-            const name = window.prompt('Prompt name:');
-            if (!name) return;
-            const content = window.prompt('Prompt content:');
-            if (!content) return;
-            const newPrompt = { id: Date.now().toString(), name: name.trim(), content: content.trim() };
-            this.prompts.push(newPrompt);
-            browserAPI.storage.local.set({ copytex_prompts: this.prompts }).catch(() => {});
+            // Custom in-page modal dialog (replaces browser prompt())
+            if (this._modalOverlay) return; // prevent double-open
+
+            const overlay = document.createElement('div');
+            overlay.className = 'copytex-modal-overlay';
+            this._modalOverlay = overlay;
+
+            const dialog = document.createElement('div');
+            dialog.className = 'copytex-modal';
+            dialog.innerHTML = `
+                <div class="copytex-modal-header">
+                    <h3>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>
+                        Add Prompt
+                    </h3>
+                </div>
+                <div class="copytex-modal-body">
+                    <div class="copytex-modal-field">
+                        <label>Name</label>
+                        <input type="text" class="copytex-modal-input" id="copytex-modal-name"
+                               placeholder="e.g. Summarize, Translate…" maxlength="40" autocomplete="off">
+                        <div class="copytex-modal-error" id="copytex-modal-name-err"></div>
+                    </div>
+                    <div class="copytex-modal-field">
+                        <label>Prompt Content</label>
+                        <textarea class="copytex-modal-input" id="copytex-modal-content"
+                                  placeholder="Enter your prompt text here…" maxlength="2000" rows="3"></textarea>
+                        <div class="copytex-modal-error" id="copytex-modal-content-err"></div>
+                    </div>
+                </div>
+                <div class="copytex-modal-footer">
+                    <button class="copytex-modal-btn copytex-modal-btn-cancel">Cancel</button>
+                    <button class="copytex-modal-btn copytex-modal-btn-confirm">Save</button>
+                </div>`;
+
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            const nameInput = dialog.querySelector('#copytex-modal-name');
+            const contentInput = dialog.querySelector('#copytex-modal-content');
+            const nameErr = dialog.querySelector('#copytex-modal-name-err');
+            const contentErr = dialog.querySelector('#copytex-modal-content-err');
+            const confirmBtn = dialog.querySelector('.copytex-modal-btn-confirm');
+            const cancelBtn = dialog.querySelector('.copytex-modal-btn-cancel');
+
+            // Show with animation
+            requestAnimationFrame(() => {
+                overlay.classList.add('visible');
+                nameInput.focus();
+            });
+
+            const cleanup = () => {
+                overlay.classList.remove('visible');
+                setTimeout(() => {
+                    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                }, 200);
+                this._modalOverlay = null;
+                document.removeEventListener('keydown', onKeyDown);
+            };
+
+            const submit = () => {
+                const name = nameInput.value.trim();
+                const content = contentInput.value.trim();
+                let valid = true;
+
+                // Clear previous errors
+                nameInput.classList.remove('error');
+                contentInput.classList.remove('error');
+                nameErr.textContent = '';
+                contentErr.textContent = '';
+
+                if (!name) {
+                    nameInput.classList.add('error');
+                    nameErr.textContent = 'Name is required';
+                    nameInput.focus();
+                    valid = false;
+                }
+                if (!content) {
+                    contentInput.classList.add('error');
+                    contentErr.textContent = 'Content is required';
+                    if (valid) contentInput.focus();
+                    valid = false;
+                }
+                if (!valid) return;
+
+                const newPrompt = { id: Date.now().toString(), name, content };
+                this.prompts.push(newPrompt);
+                browserAPI.storage.local.set({ copytex_prompts: this.prompts }).catch(() => {});
+                cleanup();
+            };
+
+            const cancel = () => { cleanup(); };
+
+            // Event listeners
+            confirmBtn.addEventListener('click', submit);
+            cancelBtn.addEventListener('click', cancel);
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) cancel(); });
+
+            // Clear error on input
+            nameInput.addEventListener('input', () => { nameInput.classList.remove('error'); nameErr.textContent = ''; });
+            contentInput.addEventListener('input', () => { contentInput.classList.remove('error'); contentErr.textContent = ''; });
+
+            // Keyboard: ESC to cancel, Ctrl+Enter to submit
+            const onKeyDown = (e) => {
+                if (e.key === 'Escape') { cancel(); }
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { submit(); }
+                // Tab between fields
+                if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey && e.target === nameInput) {
+                    e.preventDefault();
+                    contentInput.focus();
+                }
+            };
+            document.addEventListener('keydown', onKeyDown);
         }
 
         destroy() {
