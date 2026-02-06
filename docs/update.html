@@ -59,31 +59,20 @@
       border-radius: 50% 50% 0 0;
     }
     .hero-logo {
-      width: 72px; height: 72px;
-      background: rgba(255,255,255,0.15);
+      width: 80px; height: 80px;
       border-radius: 20px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 16px;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.2);
+      overflow: hidden;
     }
-    .hero-logo svg { width: 36px; height: 36px; stroke: #fff; fill: none; }
+    .hero-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
     .hero h1 {
       font-size: 32px;
       font-weight: 800;
       letter-spacing: -0.5px;
       margin-bottom: 8px;
-    }
-    .hero .version {
-      display: inline-block;
-      background: rgba(255,255,255,0.2);
-      padding: 4px 14px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 12px;
     }
     .hero p {
       font-size: 16px;
@@ -269,11 +258,8 @@
   <!-- Hero -->
   <div class="hero">
     <div class="hero-logo">
-      <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 7V4H6l6 8-6 8h12v-3"/>
-      </svg>
+      <img src="logo.png" alt="CopyTeX Logo">
     </div>
-    <div class="version">v1.1.0</div>
     <h1>What's New in CopyTeX</h1>
     <p>In-page export, prompt management, and a polished new look — all designed to supercharge your AI workflow.</p>
   </div>
