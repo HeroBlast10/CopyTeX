@@ -11,9 +11,25 @@ const browserAPI = (() => {
     return null;
 })();
 
-// Installation handler
+// Installation handler — set default settings
 browserAPI.runtime.onInstalled.addListener(() => {
     console.log('CopyTeX extension installed');
+    // Set defaults (only if not already set)
+    browserAPI.storage.local.get([
+        'copytex_formula_enabled',
+        'copytex_timeline_enabled',
+        'copytex_prompts_enabled',
+        'copytex_prompts'
+    ], (result) => {
+        const defaults = {};
+        if (result.copytex_formula_enabled === undefined) defaults.copytex_formula_enabled = true;
+        if (result.copytex_timeline_enabled === undefined) defaults.copytex_timeline_enabled = true;
+        if (result.copytex_prompts_enabled === undefined) defaults.copytex_prompts_enabled = true;
+        if (result.copytex_prompts === undefined) defaults.copytex_prompts = [];
+        if (Object.keys(defaults).length > 0) {
+            browserAPI.storage.local.set(defaults);
+        }
+    });
 });
 
 // Cross-browser message handling

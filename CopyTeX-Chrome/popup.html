@@ -3,319 +3,280 @@
 <head>
   <meta charset="utf-8">
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      width: 405px;
-      padding: 0;
-      margin: 0;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 400px;
+      max-height: 560px;
+      overflow-y: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(150deg, #667eea 0%, #764ba2 50%, #6b21a8 100%);
       color: #fff;
-      overflow: hidden;
     }
 
-    /* 背景动画效果 */
-    .background-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
-      pointer-events: none;
+    .bg-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(circle at 15% 25%, rgba(255,255,255,0.09) 0%, transparent 45%),
+        radial-gradient(circle at 85% 75%, rgba(255,255,255,0.06) 0%, transparent 45%);
+      pointer-events: none; z-index: 0;
     }
 
-    .container {
-      position: relative;
-      padding: 24px;
-      z-index: 1;
-    }
-    
-    /* 头部区域 */
-    .header {
-      text-align: center;
-      margin-bottom: 24px;
-      animation: fadeInDown 0.6s ease-out;
-    }
-    
-    .logo-wrapper {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 64px;
-      height: 64px;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-    }
-    
-    .logo {
-      width: 40px;
-      height: 40px;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-    }
-    
-    h1 {
-      font-size: 26px;
-      font-weight: 700;
-      margin: 0 0 8px 0;
-      letter-spacing: -0.5px;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
+    .container { position: relative; z-index: 1; padding: 20px; }
 
-    .subtitle {
-      font-size: 13px;
-      opacity: 0.9;
-      font-weight: 400;
-      margin: 0;
+    /* ---- Header ---- */
+    .header { text-align: center; margin-bottom: 18px; animation: fadeIn .5s ease; }
+    .logo-wrap {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 52px; height: 52px;
+      background: rgba(255,255,255,0.14); backdrop-filter: blur(10px);
+      border-radius: 16px; margin-bottom: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
     }
-    
-    /* 描述卡片 */
-    .description-card {
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
-      padding: 18px;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      animation: fadeInUp 0.6s ease-out 0.1s backwards;
+    .logo-wrap img { width: 34px; height: 34px; }
+    h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; text-shadow: 0 1px 6px rgba(0,0,0,0.15); }
+    .subtitle { font-size: 12px; opacity: 0.88; margin-top: 4px; }
+
+    /* ---- Feature pills ---- */
+    .pills { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; animation: fadeIn .5s .1s backwards; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 16px;
+      background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.2);
+      font-size: 10.5px; font-weight: 500; white-space: nowrap;
     }
-    
-    .description {
-      font-size: 14px;
-      line-height: 1.6;
-      margin: 0;
-      opacity: 0.95;
-    }
-    
-    /* 使用说明 */
-    .instructions-card {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-      animation: fadeInUp 0.6s ease-out 0.2s backwards;
-    }
-    
-    .instructions-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 0 0 16px 0;
-      font-size: 15px;
-      font-weight: 600;
+    .pill-icon { font-size: 12px; }
+
+    /* ---- Card ---- */
+    .card {
+      background: rgba(255,255,255,0.96); border-radius: 14px;
+      padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      animation: slideUp .45s ease backwards;
       color: #2d3748;
     }
+    .card:nth-child(3) { animation-delay: .08s; }
+    .card:nth-child(4) { animation-delay: .14s; }
+    .card:nth-child(5) { animation-delay: .20s; }
+    .card:nth-child(6) { animation-delay: .26s; }
 
-    .instructions-title::before {
-      content: "📋";
-      font-size: 18px;
+    .card-title {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 14px; font-weight: 600; margin-bottom: 12px;
     }
-    
-    .instructions-list {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    
-    .instructions-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 12px;
-      font-size: 13px;
-      color: #4a5568;
-      line-height: 1.5;
-    }
+    .card-title .icon { font-size: 16px; }
 
-    .instructions-list li:last-child {
-      margin-bottom: 0;
+    /* ---- Feature row with toggle ---- */
+    .feature-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 10px;
+      background: #f7f8fc; margin-bottom: 8px;
+      transition: background-color .15s;
     }
+    .feature-row:last-child { margin-bottom: 0; }
+    .feature-row:hover { background: #eef1fb; }
+    .feature-row .f-icon { font-size: 18px; flex-shrink: 0; }
+    .feature-row .f-info { flex: 1; }
+    .feature-row .f-name { font-size: 13px; font-weight: 600; color: #2d3748; }
+    .feature-row .f-desc { font-size: 11px; color: #718096; margin-top: 1px; }
 
-    .step-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 24px;
-      height: 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-radius: 50%;
-      font-weight: 600;
-      font-size: 12px;
-      flex-shrink: 0;
+    /* Toggle switch */
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle .slider {
+      position: absolute; inset: 0; border-radius: 10px; cursor: pointer;
+      background: #cbd5e0; transition: background-color .2s;
     }
-    
-    /* 特性标签 */
-    .features {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-      animation: fadeInUp 0.6s ease-out 0.3s backwards;
+    .toggle .slider::before {
+      content: ''; position: absolute;
+      width: 16px; height: 16px; border-radius: 50%;
+      left: 2px; top: 2px; background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      transition: transform .2s;
     }
+    .toggle input:checked + .slider { background: #667eea; }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
 
-    .feature-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 500;
-      white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    /* ---- Export section ---- */
+    .platform-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px; border-radius: 10px; margin-bottom: 10px;
+      font-size: 12px; background: #f0f4ff; color: #4a5568;
+      transition: all .2s;
     }
+    .platform-bar.ok { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .platform-bar.warn { background: #fefce8; color: #854d0e; border: 1px solid #fde047; }
+    .platform-bar .p-icon { font-size: 16px; }
+    .platform-bar .p-info { flex: 1; }
+    .platform-bar .p-name { font-weight: 600; font-size: 12px; }
+    .platform-bar .p-meta { font-size: 10.5px; opacity: .75; margin-top: 1px; }
 
-    .feature-icon {
-      font-size: 14px;
+    .export-row { display: flex; gap: 6px; }
+    .export-sel {
+      flex: 1; padding: 8px 10px; border-radius: 8px;
+      border: 1.5px solid #e2e8f0; background: #fff;
+      font-size: 12px; color: #2d3748; cursor: pointer; outline: none;
+      -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
     }
-    
-    /* 状态指示器 */
-    .status {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px;
-      background: rgba(72, 187, 120, 0.2);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(72, 187, 120, 0.3);
-      border-radius: 12px;
-      font-size: 13px;
-      font-weight: 500;
-      margin-bottom: 16px;
-      animation: fadeInUp 0.6s ease-out 0.4s backwards;
-    }
+    .export-sel:focus { border-color: #667eea; }
 
-    .status-icon {
-      width: 8px;
-      height: 8px;
-      background: #48bb78;
-      border-radius: 50%;
-      box-shadow: 0 0 8px rgba(72, 187, 120, 0.8);
-      animation: pulse 2s ease-in-out infinite;
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 8px 16px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
     }
-    
-    /* 页脚 */
-    .footer {
-      text-align: center;
-      font-size: 11px;
-      opacity: 0.75;
-      animation: fadeIn 0.6s ease-out 0.5s backwards;
-    }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,.35); }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn.ok { background: linear-gradient(135deg, #48bb78, #38a169); }
+    .btn.err { background: linear-gradient(135deg, #f56565, #e53e3e); }
 
-    /* 动画效果 */
-    @keyframes fadeInDown {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+    .export-msg { margin-top: 8px; font-size: 11px; color: #4a5568; min-height: 16px; }
+    .export-msg.ok { color: #166534; }
+    .export-msg.err { color: #9b2c2c; }
 
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* ---- Prompt list ---- */
+    .prompt-list { max-height: 140px; overflow-y: auto; }
+    .prompt-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 8px; margin-bottom: 4px;
+      cursor: default; transition: background .12s;
     }
+    .prompt-item:hover { background: #f0f4ff; }
+    .prompt-item .pi-name { flex: 1; font-size: 12px; font-weight: 500; color: #2d3748; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .prompt-item .pi-del {
+      width: 18px; height: 18px; border: none; border-radius: 4px;
+      background: rgba(239,68,68,.08); color: #ef4444; font-size: 11px;
+      cursor: pointer; display: none; align-items: center; justify-content: center;
+    }
+    .prompt-item:hover .pi-del { display: flex; }
+    .prompt-item .pi-del:hover { background: rgba(239,68,68,.18); }
+    .prompt-empty { text-align: center; padding: 12px; font-size: 11px; color: #a0aec0; }
 
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+    .add-row { display: flex; gap: 6px; margin-top: 8px; }
+    .add-input {
+      flex: 1; padding: 7px 10px; border-radius: 8px;
+      border: 1.5px solid #e2e8f0; font-size: 12px; outline: none;
+      color: #2d3748; background: #fff;
     }
+    .add-input:focus { border-color: #667eea; }
+    .add-input::placeholder { color: #a0aec0; }
+    .btn-sm {
+      padding: 7px 12px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff; font-size: 11px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: all .15s;
+    }
+    .btn-sm:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(102,126,234,.3); }
 
-    @keyframes pulse {
-      0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-      }
-      50% {
-        opacity: 0.6;
-        transform: scale(1.1);
-      }
-    }
+    /* ---- Footer ---- */
+    .footer { text-align: center; font-size: 10.5px; opacity: .7; padding-bottom: 4px; animation: fadeIn .5s .3s backwards; }
 
-    /* 滚动条样式 */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
+    /* ---- Scrollbar ---- */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.4); }
+    .prompt-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,.12); }
 
-    ::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 3px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.4);
-    }
+    /* ---- Animations ---- */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
-  <div class="background-overlay"></div>
-  
+  <div class="bg-overlay"></div>
   <div class="container">
+
+    <!-- Header -->
     <div class="header">
-      <div class="logo-wrapper">
-        <img src="icons/icon128.png" alt="CopyTeX Icon" class="logo">
-      </div>
+      <div class="logo-wrap"><img src="icons/icon128.png" alt="CopyTeX"></div>
       <h1>CopyTeX</h1>
-      <p class="subtitle">Instantly Copy Real LaTeX from AI chats</p>
-    </div>
-    
-    <div class="description-card">
-      <p class="description">
-        Copy mathematical formulas from Google Gemini, ChatGPT, DeepSeek, Grok, and Poe in LaTeX format with a double click.
-      </p>
+      <p class="subtitle">Copy LaTeX &bull; Timeline &bull; Prompts &bull; Export</p>
     </div>
 
-    <div class="features">
-      <div class="feature-tag">
-        <span class="feature-icon">✨</span>
-        <span>Double Click</span>
+    <div class="pills">
+      <span class="pill"><span class="pill-icon">🖱</span> Click to Copy</span>
+      <span class="pill"><span class="pill-icon">🌐</span> Any Website</span>
+      <span class="pill"><span class="pill-icon">📊</span> KaTeX &amp; MathJax</span>
+      <span class="pill"><span class="pill-icon">⚡</span> Timeline</span>
+    </div>
+
+    <!-- Features Card -->
+    <div class="card">
+      <div class="card-title"><span class="icon">⚙</span> Features</div>
+
+      <div class="feature-row">
+        <span class="f-icon">∑</span>
+        <div class="f-info">
+          <div class="f-name">Formula Copy</div>
+          <div class="f-desc">Click any formula to copy LaTeX — works on all sites</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-formula" checked><span class="slider"></span></label>
       </div>
-      <div class="feature-tag">
-        <span class="feature-icon">🎯</span>
-        <span>Accurate</span>
+
+      <div class="feature-row">
+        <span class="f-icon">📍</span>
+        <div class="f-info">
+          <div class="f-name">Timeline</div>
+          <div class="f-desc">Navigate conversations with a sidebar dot bar</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-timeline" checked><span class="slider"></span></label>
       </div>
-      <div class="feature-tag">
-        <span class="feature-icon">🌐</span>
-        <span>Multi-Platform</span>
+
+      <div class="feature-row">
+        <span class="f-icon">⚡</span>
+        <div class="f-info">
+          <div class="f-name">Prompt Button</div>
+          <div class="f-desc">Quick prompt insertion near the input box</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="toggle-prompts" checked><span class="slider"></span></label>
       </div>
     </div>
-    
-    <div class="footer">
-      v1.0.1 | Double-click formulas to copy LaTeX
+
+    <!-- Export Card -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📥</span> Export Conversation</div>
+      <div class="platform-bar" id="platform-info">
+        <span class="p-icon" id="platform-icon">🔍</span>
+        <div class="p-info">
+          <div class="p-name" id="platform-name">Detecting…</div>
+          <div class="p-meta" id="platform-meta"></div>
+        </div>
+      </div>
+      <div class="export-row">
+        <select class="export-sel" id="export-format">
+          <option value="markdown">Markdown (.md)</option>
+          <option value="json">JSON (.json)</option>
+          <option value="both">Both formats</option>
+        </select>
+        <button class="btn" id="export-btn" disabled>
+          <span id="export-btn-text">Export</span>
+        </button>
+      </div>
+      <div class="export-msg" id="export-status"></div>
     </div>
+
+    <!-- Prompts Card -->
+    <div class="card">
+      <div class="card-title"><span class="icon">⚡</span> Saved Prompts</div>
+      <div class="prompt-list" id="prompt-list">
+        <div class="prompt-empty" id="prompt-empty">No prompts saved yet</div>
+      </div>
+      <div class="add-row">
+        <input class="add-input" id="prompt-name" placeholder="Name" maxlength="40">
+        <input class="add-input" id="prompt-content" placeholder="Prompt content" maxlength="2000" style="flex:2">
+        <button class="btn-sm" id="prompt-add-btn">Add</button>
+      </div>
+    </div>
+
+    <div class="footer">v1.1.0 &bull; Universal LaTeX copy on any website</div>
   </div>
 
   <script src="popup.js"></script>

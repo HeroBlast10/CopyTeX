@@ -1,19 +1,20 @@
 ﻿{
   "manifest_version": 2,
   "name": "__MSG_extensionName__",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
     "clipboardWrite",
     "activeTab",
+    "storage",
     "<all_urls>"
   ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["styles.css"],
+      "js": ["content.js", "exporter.js", "timeline.js", "promptbutton.js"],
+      "css": ["styles.css", "timeline.css", "promptbutton.css"],
       "run_at": "document_end"
     }
   ],
