@@ -663,18 +663,31 @@
             }
 
             if (request.type === 'extractForExport') {
-                const messages = extractMessages();
-                const title = getConversationTitle();
-                const result = { title, messageCount: messages.length };
-                if (messages.length > 0) {
-                    if (request.format === 'markdown' || request.format === 'both') {
-                        result.markdown = formatAsMarkdown(messages, title);
-                    }
-                    if (request.format === 'json' || request.format === 'both') {
-                        result.json = formatAsJSON(messages, title);
+                // SPA pages load conversation content asynchronously.
+                // Poll the DOM for messages before responding.
+                const maxWait = 20000;
+                const pollInterval = 1500;
+                const startTime = Date.now();
+
+                function tryExtract() {
+                    const messages = extractMessages();
+                    if (messages.length > 0 || Date.now() - startTime >= maxWait) {
+                        const title = getConversationTitle();
+                        const result = { title, messageCount: messages.length };
+                        if (messages.length > 0) {
+                            if (request.format === 'markdown' || request.format === 'both') {
+                                result.markdown = formatAsMarkdown(messages, title);
+                            }
+                            if (request.format === 'json' || request.format === 'both') {
+                                result.json = formatAsJSON(messages, title);
+                            }
+                        }
+                        sendResponse(result);
+                    } else {
+                        setTimeout(tryExtract, pollInterval);
                     }
                 }
-                sendResponse(result);
+                tryExtract();
                 return true;
             }
 

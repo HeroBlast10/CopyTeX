@@ -49,10 +49,13 @@ browserAPI.runtime.onInstalled.addListener((details) => {
     }
 });
 
-// Helper: open a tab, wait for it to fully load, then send a message and get the response
+// Helper: open a tab, wait for it to fully load, then send a message and get the response.
+// The content script (exporter.js) polls the DOM for up to 20s internally,
+// so we mainly need to handle: tab creation, waiting for load, and retrying
+// the message send in case content scripts aren't injected yet.
 function extractFromTab(url, format, timeoutMs) {
     return new Promise((resolve) => {
-        const timeout = timeoutMs || 30000;
+        const timeout = timeoutMs || 45000;
         let tabId = null;
         let settled = false;
 
@@ -65,7 +68,7 @@ function extractFromTab(url, format, timeoutMs) {
             resolve(result);
         };
 
-        // Timeout fallback
+        // Overall timeout fallback
         const timer = setTimeout(() => finish({ title: url, messageCount: 0, error: 'Timeout' }), timeout);
 
         browserAPI.tabs.create({ url, active: false }, (tab) => {
@@ -81,26 +84,35 @@ function extractFromTab(url, format, timeoutMs) {
                 if (updatedTabId !== tabId || changeInfo.status !== 'complete') return;
                 browserAPI.tabs.onUpdated.removeListener(onUpdated);
 
-                // Wait a bit for content scripts to initialize
-                setTimeout(() => {
+                // Retry sending the message multiple times in case content scripts
+                // haven't fully initialized yet. The content script itself polls
+                // the DOM for messages, so once it receives the message it will wait.
+                let attempt = 0;
+                const maxAttempts = 5;
+                const retryDelay = 2000;
+
+                function trySendMessage() {
+                    attempt++;
+                    if (settled) return;
                     browserAPI.tabs.sendMessage(tabId, { type: 'extractForExport', format }, (response) => {
-                        clearTimeout(timer);
+                        if (settled) return;
                         if (browserAPI.runtime.lastError || !response) {
-                            // Retry once after another short delay
-                            setTimeout(() => {
-                                browserAPI.tabs.sendMessage(tabId, { type: 'extractForExport', format }, (resp2) => {
-                                    if (browserAPI.runtime.lastError || !resp2) {
-                                        finish({ title: url, messageCount: 0, error: 'No response from tab' });
-                                    } else {
-                                        finish(resp2);
-                                    }
-                                });
-                            }, 2000);
+                            // Content script not ready yet — retry
+                            if (attempt < maxAttempts) {
+                                setTimeout(trySendMessage, retryDelay);
+                            } else {
+                                clearTimeout(timer);
+                                finish({ title: url, messageCount: 0, error: 'Content script not responding' });
+                            }
                         } else {
+                            clearTimeout(timer);
                             finish(response);
                         }
                     });
-                }, 3000);
+                }
+
+                // Initial delay for content scripts to inject and initialize
+                setTimeout(trySendMessage, 1500);
             };
             browserAPI.tabs.onUpdated.addListener(onUpdated);
         });
@@ -147,7 +159,7 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     } catch (e) { /* ignore */ }
                 }
 
-                const result = await extractFromTab(convo.url, format, 35000);
+                const result = await extractFromTab(convo.url, format, 45000);
                 result.originalTitle = convo.title;
                 result.url = convo.url;
                 results.push(result);

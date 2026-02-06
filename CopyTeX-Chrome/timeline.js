@@ -147,6 +147,7 @@
             this._urlCheckInterval = null;
             this._resizeHandler = null;
             this._barHeight = 0;
+            this._scrollLockUntil = 0;  // timestamp: suppress scroll-sync until this time
         }
 
         async init() {
@@ -305,6 +306,10 @@
             const m = this.markers[index];
             if (!m || !m.element || !m.element.isConnected) return;
 
+            // Force-set active dot immediately on click, suppress scroll-sync for 1.2s
+            this._setActive(index);
+            this._scrollLockUntil = Date.now() + 1200;
+
             m.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             // Highlight flash
             const orig = m.element.style.backgroundColor;
@@ -317,7 +322,7 @@
             const m = this.markers[index];
             if (!m) return;
             let text = this.adapter.getText(m.element);
-            if (text.length > 60) text = text.substring(0, 60) + '…';
+            if (text.length > 100) text = text.substring(0, 100) + '…';
             if (!text) text = `Message ${index + 1}`;
 
             this.tip.textContent = `#${index + 1}: ${text}`;
@@ -346,36 +351,46 @@
             }, 80);
         }
 
+        // ---- Active dot helpers ----
+        _setActive(index) {
+            if (index === this.activeIndex) return;
+            if (this.activeIndex >= 0 && this.activeIndex < this.markers.length) {
+                this.markers[this.activeIndex].dotElement.classList.remove('active');
+            }
+            this.activeIndex = index;
+            if (index >= 0 && index < this.markers.length) {
+                this.markers[index].dotElement.classList.add('active');
+            }
+        }
+
         // ---- Active dot sync (scroll-based) ----
+        // Find the message whose top is closest to the viewport center.
+        // This avoids the off-by-one problem of a fixed threshold approach.
         _syncActive() {
             if (!this.scrollContainer || this.markers.length === 0) return;
+            // Skip if scroll-lock is active (after a dot click)
+            if (Date.now() < this._scrollLockUntil) return;
 
             const sc = this.scrollContainer;
             const isDoc = (sc === document.documentElement || sc === document.body);
+            const containerTop = isDoc ? 0 : sc.getBoundingClientRect().top;
+            const viewH = isDoc ? window.innerHeight : sc.getBoundingClientRect().height;
+            const viewCenter = containerTop + viewH / 2;
 
-            let activeIdx = -1;
-            for (let i = this.markers.length - 1; i >= 0; i--) {
+            let bestIdx = 0;
+            let bestDist = Infinity;
+            for (let i = 0; i < this.markers.length; i++) {
                 const msg = this.markers[i].element;
                 if (!msg.isConnected) continue;
                 const rect = msg.getBoundingClientRect();
-                const containerTop = isDoc ? 0 : sc.getBoundingClientRect().top;
-                // Consider a message "active" if its top is within upper 40% of visible area
-                if (rect.top <= containerTop + window.innerHeight * 0.4) {
-                    activeIdx = i;
-                    break;
+                const dist = Math.abs(rect.top - viewCenter);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestIdx = i;
                 }
             }
-            if (activeIdx === -1 && this.markers.length > 0) activeIdx = 0;
 
-            if (activeIdx !== this.activeIndex) {
-                if (this.activeIndex >= 0 && this.activeIndex < this.markers.length) {
-                    this.markers[this.activeIndex].dotElement.classList.remove('active');
-                }
-                this.activeIndex = activeIdx;
-                if (activeIdx >= 0 && activeIdx < this.markers.length) {
-                    this.markers[activeIdx].dotElement.classList.add('active');
-                }
-            }
+            this._setActive(bestIdx);
         }
 
         // ---- Events ----

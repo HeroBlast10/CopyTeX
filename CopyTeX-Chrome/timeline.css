@@ -114,11 +114,11 @@ html.dark .copytex-timeline-dot.active::after {
 .copytex-timeline-tip {
     position: fixed;
     z-index: 9999;
-    max-width: 260px;
-    padding: 8px 14px;
+    max-width: 300px;
+    padding: 10px 16px;
     border-radius: 8px;
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: 14px;
+    line-height: 1.5;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #1a1a2e;
     color: #e0e6ff;
@@ -127,9 +127,13 @@ html.dark .copytex-timeline-dot.active::after {
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.15s ease;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .copytex-timeline-tip.visible {
