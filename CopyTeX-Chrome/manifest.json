@@ -16,14 +16,20 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["jszip.min.js", "content.js", "exporter.js", "timeline.js", "promptbutton.js", "export-button.js"],
-      "css": ["timeline.css", "promptbutton.css", "export-button.css"],
+      "js": ["jszip.min.js", "content.js", "exporter.js", "timeline.js", "promptbutton.js", "export-button.js", "watermark-remover.js"],
+      "css": ["timeline.css", "promptbutton.css", "export-button.css", "watermark-remover.css"],
       "run_at": "document_end"
     }
   ],
   "background": {
     "service_worker": "background.js"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/bg_48.png", "assets/bg_96.png", "watermark-remover-inject.js"],
+      "matches": ["https://gemini.google.com/*"]
+    }
+  ],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

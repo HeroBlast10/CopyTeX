@@ -23,12 +23,14 @@ browserAPI.runtime.onInstalled.addListener((details) => {
         'copytex_formula_enabled',
         'copytex_timeline_enabled',
         'copytex_prompts_enabled',
+        'copytex_watermark_enabled',
         'copytex_prompts'
     ], (result) => {
         const defaults = {};
         if (result.copytex_formula_enabled === undefined) defaults.copytex_formula_enabled = true;
         if (result.copytex_timeline_enabled === undefined) defaults.copytex_timeline_enabled = true;
         if (result.copytex_prompts_enabled === undefined) defaults.copytex_prompts_enabled = true;
+        if (result.copytex_watermark_enabled === undefined) defaults.copytex_watermark_enabled = true;
         if (result.copytex_prompts === undefined) defaults.copytex_prompts = [];
         if (Object.keys(defaults).length > 0) {
             browserAPI.storage.local.set(defaults);
@@ -46,6 +48,25 @@ browserAPI.runtime.onInstalled.addListener((details) => {
                 active: true
             });
         }
+    }
+});
+
+// Helper: fetch an image URL and return it as a data URL (for content scripts that can't fetch cross-origin)
+browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === 'fetchImageAsDataUrl') {
+        fetch(request.url)
+            .then(response => {
+                if (!response.ok) throw new Error('Fetch failed: ' + response.status);
+                return response.blob();
+            })
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => sendResponse({ dataUrl: reader.result });
+                reader.onerror = () => sendResponse({ error: 'FileReader failed' });
+                reader.readAsDataURL(blob);
+            })
+            .catch(err => sendResponse({ error: err.message }));
+        return true; // keep channel open for async sendResponse
     }
 });
 

@@ -445,7 +445,10 @@
 
                 const newPrompt = { id: Date.now().toString(), name, content };
                 this.prompts.push(newPrompt);
-                browserAPI.storage.local.set({ copytex_prompts: this.prompts }).catch(() => {});
+                try {
+                    const result = browserAPI.storage.local.set({ copytex_prompts: this.prompts });
+                    if (result && typeof result.catch === 'function') result.catch(() => {});
+                } catch (e) { /* ignore storage errors */ }
                 cleanup();
             };
 

@@ -1,0 +1,12 @@
+/* CopyTeX - Watermark Remover Styles */
+
+/* Processing indicator on images */
+img[data-copytex-watermark="processing"] {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+img[data-copytex-watermark="done"] {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
