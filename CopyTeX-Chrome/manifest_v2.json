@@ -1,5 +1,5 @@
-{
-  "manifest_version": 3,
+﻿{
+  "manifest_version": 2,
   "name": "__MSG_extensionName__",
   "version": "1.5.1",
   "description": "__MSG_extensionDescription__",
@@ -7,10 +7,7 @@
   "permissions": [
     "clipboardWrite",
     "activeTab",
-    "scripting",
-    "storage"
-  ],
-  "host_permissions": [
+    "storage",
     "<all_urls>"
   ],
   "content_scripts": [
@@ -22,26 +19,32 @@
     }
   ],
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"],
+    "persistent": false
   },
   "web_accessible_resources": [
-    {
-      "resources": ["assets/bg_48.png", "assets/bg_96.png", "watermark-remover-inject.js"],
-      "matches": ["https://gemini.google.com/*"]
-    }
+    "assets/bg_48.png",
+    "assets/bg_96.png",
+    "watermark-remover-inject.js"
   ],
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  },
-  "action": {
+  "browser_action": {
     "default_popup": "popup.html",
     "default_title": "__MSG_extensionName__",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "applications": {
+    "gecko": {
+      "id": "universal-math-copier@heroblast10.github.io",
+      "strict_min_version": "58.0"
     }
   }
 }
