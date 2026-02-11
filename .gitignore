@@ -1,0 +1,11 @@
+# Ignore everything
+*
+
+# Allow these specific items
+!.gitignore
+!README.md
+!logo.png
+!CopyTeX-Chrome/
+!CopyTeX-Chrome/**
+!docs/
+!docs/**

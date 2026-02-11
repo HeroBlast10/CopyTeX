@@ -465,14 +465,41 @@ const debounce = (func, delay) => {
 
 const debouncedScan = debounce(() => scanAndAttachFormulas(), 300);
 
+let _formulaObserver = null;
+
 function initObserver() {
-    if (!document.body) return;
-    const observer = new MutationObserver(mutations => {
+    if (!document.body || _formulaObserver) return;
+    _formulaObserver = new MutationObserver(mutations => {
         if (mutations.some(m => m.addedNodes && m.addedNodes.length > 0)) {
             debouncedScan();
         }
     });
-    observer.observe(document.body, { subtree: true, childList: true });
+    _formulaObserver.observe(document.body, { subtree: true, childList: true });
+}
+
+// ============================================================
+//  Enable / Disable formula copy feature
+// ============================================================
+let _formulaEnabled = true;
+
+function enableFormulaCopy() {
+    if (_formulaEnabled) return;
+    _formulaEnabled = true;
+    if (!document.body) return;
+    injectStyles();
+    scanAndAttachFormulas();
+    initObserver();
+}
+
+function disableFormulaCopy() {
+    _formulaEnabled = false;
+    if (_formulaObserver) { _formulaObserver.disconnect(); _formulaObserver = null; }
+    // Remove all formula handlers and visual indicators
+    document.querySelectorAll('[data-copytex-ready]').forEach(el => {
+        el.removeAttribute('data-copytex-ready');
+        el.style.cursor = '';
+        el.title = '';
+    });
 }
 
 // ============================================================
@@ -492,8 +519,32 @@ function initialize() {
     setTimeout(scanAndAttachFormulas, 4000);
 }
 
+function startWithToggleCheck() {
+    try {
+        browserAPI.storage.local.get('copytex_formula_enabled', (result) => {
+            if (browserAPI.runtime.lastError) { initialize(); return; }
+            if (result.copytex_formula_enabled === false) {
+                _formulaEnabled = false;
+            } else {
+                initialize();
+            }
+        });
+        browserAPI.storage.onChanged.addListener((changes) => {
+            if (changes.copytex_formula_enabled) {
+                if (changes.copytex_formula_enabled.newValue === false) {
+                    disableFormulaCopy();
+                } else {
+                    enableFormulaCopy();
+                }
+            }
+        });
+    } catch (e) {
+        initialize();
+    }
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+    document.addEventListener('DOMContentLoaded', startWithToggleCheck, { once: true });
 } else {
-    initialize();
+    startWithToggleCheck();
 }

@@ -682,15 +682,42 @@
     let manager = null;
 
     function initExportButton() {
+        if (manager) return;
         if (!isSupported()) return;
         manager = new ExportButtonManager();
         manager.init();
     }
 
+    function destroyExportButton() {
+        if (manager) { manager.destroy(); manager = null; }
+    }
+
+    function startWithToggleCheck() {
+        try {
+            browserAPI.storage.local.get('copytex_export_enabled', (result) => {
+                if (browserAPI.runtime.lastError) { setTimeout(initExportButton, 1000); return; }
+                if (result.copytex_export_enabled !== false) {
+                    setTimeout(initExportButton, 1000);
+                }
+            });
+            browserAPI.storage.onChanged.addListener((changes) => {
+                if (changes.copytex_export_enabled) {
+                    if (changes.copytex_export_enabled.newValue === false) {
+                        destroyExportButton();
+                    } else {
+                        initExportButton();
+                    }
+                }
+            });
+        } catch (e) {
+            setTimeout(initExportButton, 1000);
+        }
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(initExportButton, 1000), { once: true });
+        document.addEventListener('DOMContentLoaded', () => startWithToggleCheck(), { once: true });
     } else {
-        setTimeout(initExportButton, 1000);
+        startWithToggleCheck();
     }
 
     window.addEventListener('beforeunload', () => { if (manager) manager.destroy(); });

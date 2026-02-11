@@ -18,7 +18,7 @@
             hosts: ['chatgpt.com', 'chat.openai.com'],
             inputSelector: '#prompt-textarea, [id="prompt-textarea"], textarea[data-id="root"]',
             containerSelector: 'form, [class*="composer"]',
-            getOffset: () => ({ top: 8, left: 0 }),
+            getOffset: () => ({ top: 8, left: -40 }),
             insertText: (input, text) => insertContentEditable(input, text)
         },
         gemini: {
@@ -446,9 +446,11 @@
                 const newPrompt = { id: Date.now().toString(), name, content };
                 this.prompts.push(newPrompt);
                 try {
-                    const result = browserAPI.storage.local.set({ copytex_prompts: this.prompts });
-                    if (result && typeof result.catch === 'function') result.catch(() => {});
-                } catch (e) { /* ignore storage errors */ }
+                    if (browserAPI.runtime && browserAPI.runtime.id) {
+                        const result = browserAPI.storage.local.set({ copytex_prompts: this.prompts });
+                        if (result && typeof result.catch === 'function') result.catch(() => {});
+                    }
+                } catch (e) { /* ignore storage errors (e.g. extension context invalidated) */ }
                 cleanup();
             };
 
@@ -490,16 +492,43 @@
     let manager = null;
 
     function initPromptButton() {
+        if (manager) return;
         const adapter = detectInputAdapter();
         if (!adapter) return;
         manager = new PromptButtonManager(adapter);
         manager.init();
     }
 
+    function destroyPromptButton() {
+        if (manager) { manager.destroy(); manager = null; }
+    }
+
+    function startWithToggleCheck() {
+        try {
+            browserAPI.storage.local.get('copytex_prompts_enabled', (result) => {
+                if (browserAPI.runtime.lastError) { setTimeout(initPromptButton, 800); return; }
+                if (result.copytex_prompts_enabled !== false) {
+                    setTimeout(initPromptButton, 800);
+                }
+            });
+            browserAPI.storage.onChanged.addListener((changes) => {
+                if (changes.copytex_prompts_enabled) {
+                    if (changes.copytex_prompts_enabled.newValue === false) {
+                        destroyPromptButton();
+                    } else {
+                        initPromptButton();
+                    }
+                }
+            });
+        } catch (e) {
+            setTimeout(initPromptButton, 800);
+        }
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(initPromptButton, 800), { once: true });
+        document.addEventListener('DOMContentLoaded', () => startWithToggleCheck(), { once: true });
     } else {
-        setTimeout(initPromptButton, 800);
+        startWithToggleCheck();
     }
 
     window.addEventListener('beforeunload', () => { if (manager) manager.destroy(); });

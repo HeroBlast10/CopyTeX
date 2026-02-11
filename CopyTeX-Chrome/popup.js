@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const toggleIds = {
     'toggle-formula': 'copytex_formula_enabled',
     'toggle-prompts': 'copytex_prompts_enabled',
+    'toggle-export': 'copytex_export_enabled',
     'toggle-watermark': 'copytex_watermark_enabled'
   };
 

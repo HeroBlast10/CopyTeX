@@ -23,6 +23,7 @@ browserAPI.runtime.onInstalled.addListener((details) => {
         'copytex_formula_enabled',
         'copytex_timeline_enabled',
         'copytex_prompts_enabled',
+        'copytex_export_enabled',
         'copytex_watermark_enabled',
         'copytex_prompts'
     ], (result) => {
@@ -30,6 +31,7 @@ browserAPI.runtime.onInstalled.addListener((details) => {
         if (result.copytex_formula_enabled === undefined) defaults.copytex_formula_enabled = true;
         if (result.copytex_timeline_enabled === undefined) defaults.copytex_timeline_enabled = true;
         if (result.copytex_prompts_enabled === undefined) defaults.copytex_prompts_enabled = true;
+        if (result.copytex_export_enabled === undefined) defaults.copytex_export_enabled = true;
         if (result.copytex_watermark_enabled === undefined) defaults.copytex_watermark_enabled = true;
         if (result.copytex_prompts === undefined) defaults.copytex_prompts = [];
         if (Object.keys(defaults).length > 0) {
