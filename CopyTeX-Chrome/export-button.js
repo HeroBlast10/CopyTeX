@@ -14,18 +14,60 @@
     const SUPPORTED_HOSTS = [
         'chat.openai.com', 'chatgpt.com', 'gemini.google.com',
         'chat.deepseek.com', 'claude.ai', 'grok.com',
-        'kimi.ai', 'kimi.moonshot.cn', 'poe.com'
+        'kimi.ai', 'kimi.moonshot.cn', 'poe.com',
+        'www.doubao.com', 'doubao.com',
+        'www.qianwen.com', 'qianwen.com', 'tongyi.aliyun.com'
     ];
 
-    // Platform sidebar selectors for "All Conversations" scope
+    // Platform sidebar selectors for "All Conversations" scope.
+    // Each value is an array of selectors tried in order; the first one that
+    // returns ≥1 element wins. This lets us handle layout changes gracefully.
     const SIDEBAR_SELECTORS = {
-        chatgpt: 'nav a[href*="/c/"], nav a[href*="/g/"]',
-        gemini:  'a[href*="/app/"][role="listitem"], a[data-conversation-id]',
-        deepseek: '.sidebar a[href*="/chat/"], nav a[href*="/chat/"]',
-        claude:  'a[href*="/chat/"], nav a[href*="/chat/"]',
-        grok:    'a[href*="/chat/"]',
-        kimi:    'a[href*="/chat/"]',
-        poe:     'a[href*="/chat/"]'
+        chatgpt: [
+            'nav a[href*="/c/"]',
+            'nav a[href*="/g/"]',
+            '[data-testid="history-item"] a',
+            'nav li a[href]'
+        ],
+        gemini: [
+            // Gemini renders conversations as <a> tags under a side-nav list.
+            // The href pattern is /app/<id> (no trailing slash required).
+            'nav a[href*="/app/"]',
+            'bard-sidenav-item a',
+            '[data-conversation-id] a, a[data-conversation-id]',
+            // Broader fallbacks: any anchor in the left sidebar that links to /app/
+            'side-nav a[href*="/app/"]',
+            'mat-nav-list a[href*="/app/"]',
+            'a[href*="gemini.google.com/app/"]',
+            // Very broad: any link containing /app/ in the sidenav area
+            '[class*="sidenav"] a[href*="/app/"], [class*="sidebar"] a[href*="/app/"]',
+            '[class*="nav"] a[href*="/app/"]'
+        ],
+        deepseek: [
+            // DeepSeek conversation links: /a/chat/s/<id> or /chat/<id>
+            'a[href*="/chat/"]',
+            // DeepSeek sidebar may render items as <div> with click-to-navigate.
+            // Look for sidebar list items that have text content (conversation titles).
+            '[class*="sidebar"] a[href]',
+            '[class*="session"] a[href]',
+            '[class*="history"] a[href]',
+            '[class*="conversation"] a[href]',
+            'aside a[href]',
+            'nav a[href]',
+            // Broad: any <a> in the page whose href points to a chat path
+            'a[href*="/a/chat/"]'
+        ],
+        claude: [
+            'a[href*="/chat/"]',
+            'nav a[href*="/chat/"]',
+            '[class*="conversation"] a[href]',
+            '[class*="history"] a[href]'
+        ],
+        grok:    ['a[href*="/conversation/"]', 'a[href*="/chat/"]', 'nav a[href]'],
+        kimi:    ['a[href*="/chat/"]', 'nav a[href]'],
+        poe:     ['a[href*="/chat/"]', 'nav a[href]'],
+        doubao:  ['a[href*="/chat/"]'],
+        qianwen: ['a[href*="/chat/"]', 'nav a[href]']
     };
 
     function isSupported() {
@@ -71,25 +113,133 @@
         if (!platform) return [];
 
         const selectorKey = platform.id;
-        const selector = SIDEBAR_SELECTORS[selectorKey];
-        if (!selector) return [];
+        const selectors = SIDEBAR_SELECTORS[selectorKey];
+        if (!selectors) return [];
 
-        const links = document.querySelectorAll(selector);
+        // Try each selector in the list; use the first one that yields results.
+        const selectorList = Array.isArray(selectors) ? selectors : [selectors];
+        let links = [];
+        for (const sel of selectorList) {
+            try {
+                const found = Array.from(document.querySelectorAll(sel));
+                if (found.length > 0) {
+                    links = found;
+                    break;
+                }
+            } catch (e) { /* ignore invalid selector */ }
+        }
+
         const conversations = [];
         const seen = new Set();
 
+        // URL filters: only keep links that are real conversation pages.
+        const CONVERSATION_HREF_FILTERS = {
+            chatgpt:  href => /chatgpt\.com\/c\/|openai\.com\/c\//.test(href),
+            gemini:   href => /^https:\/\/gemini\.google\.com\/app\/[a-zA-Z0-9_-]{4,}/.test(href),
+            deepseek: href => /chat\.deepseek\.com.*\/chat\//.test(href),
+            claude:   href => /claude\.ai.*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
+            grok:     href => /grok\.com.*\/(conversation|chat)\/[a-zA-Z0-9_-]{3,}/.test(href),
+            kimi:     href => /kimi\.(ai|moonshot\.cn).*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
+            poe:      href => /poe\.com.*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
+            doubao:   href => /doubao\.com\/chat\/\d+/.test(href),
+            qianwen:  href => /qianwen\.com\/chat\/[a-zA-Z0-9_-]{3,}/.test(href)
+        };
+        const hrefFilter = CONVERSATION_HREF_FILTERS[selectorKey] || (() => true);
+
         links.forEach(a => {
-            const href = a.href || a.getAttribute('href');
-            if (!href || seen.has(href)) return;
+            const rawHref = a.href || a.getAttribute('href') || '';
+            if (!rawHref) return;
+
+            let href;
+            try {
+                href = new URL(rawHref, location.href).href;
+            } catch (e) { return; }
+
+            if (!hrefFilter(href)) return;
+            if (seen.has(href)) return;
             seen.add(href);
 
-            let title = a.textContent?.trim() || '';
-            // Clean up titles
-            title = title.replace(/\s+/g, ' ').substring(0, 100);
+            let title = a.getAttribute('aria-label') || a.getAttribute('title') || '';
+            if (!title) {
+                const textNodes = Array.from(a.querySelectorAll('span, p, div'))
+                    .filter(el => !el.querySelector('svg') && el.textContent?.trim());
+                title = textNodes.length > 0
+                    ? textNodes[0].textContent.trim()
+                    : (a.textContent?.trim() || '');
+            }
+            title = title.replace(/\s+/g, ' ').substring(0, 120);
             if (!title || title.length < 2) return;
 
             conversations.push({ title, url: href });
         });
+
+        // ── DeepSeek fallback: if no <a> tags found, the sidebar may use
+        //    non-link elements (SPA-style click navigation). Scan for any
+        //    clickable sidebar items that contain text and build URLs from
+        //    the window.history / current URL pattern.
+        if (conversations.length === 0 && selectorKey === 'deepseek') {
+            const sidebarCandidates = [
+                '[class*="sidebar"] [class*="item"]',
+                '[class*="sidebar"] [class*="session"]',
+                '[class*="sidebar"] [class*="chat"]',
+                '[class*="sidebar"] [class*="title"]',
+                '[class*="history"] [class*="item"]',
+                'aside [class*="item"]',
+                'aside [class*="chat"]',
+                'nav [class*="chat"]',
+                // DeepSeek commonly uses div.ds-* classes
+                '[class*="ds-"] [class*="item"]',
+                '[class*="ds-"] [class*="session"]'
+            ];
+            let sidebarItems = [];
+            for (const sel of sidebarCandidates) {
+                try {
+                    const found = Array.from(document.querySelectorAll(sel));
+                    if (found.length > 0) {
+                        sidebarItems = found;
+                        break;
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            // Also try: find any element with an href attribute (even on <div>)
+            if (sidebarItems.length === 0) {
+                try {
+                    sidebarItems = Array.from(document.querySelectorAll(
+                        'aside [href*="/chat/"], nav [href*="/chat/"], [class*="sidebar"] [href*="/chat/"]'
+                    ));
+                } catch (e) { /* ignore */ }
+            }
+
+            // As a last resort, find all <a> on the page and filter by chat URL
+            if (sidebarItems.length === 0) {
+                const allAnchors = Array.from(document.querySelectorAll('a[href]'));
+                sidebarItems = allAnchors.filter(a => {
+                    const h = a.href || '';
+                    return /chat\.deepseek\.com.*\/chat\//.test(h);
+                });
+            }
+
+            sidebarItems.forEach(el => {
+                const rawHref = el.href || el.getAttribute('href') || '';
+                let href = '';
+                if (rawHref) {
+                    try { href = new URL(rawHref, location.href).href; } catch (e) { return; }
+                }
+
+                let title = el.getAttribute('aria-label') || el.getAttribute('title') || '';
+                if (!title) {
+                    title = el.innerText?.trim() || '';
+                }
+                title = title.replace(/\s+/g, ' ').substring(0, 120);
+                if (!title || title.length < 2) return;
+
+                if (href && !seen.has(href)) {
+                    seen.add(href);
+                    conversations.push({ title, url: href });
+                }
+            });
+        }
 
         return conversations;
     }
@@ -290,14 +440,39 @@
             cancelBtn.addEventListener('click', close);
             overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
 
-            // Track scope/format selection
+            // Track scope/format selection.
+            // When switching to "All Chats", re-query the sidebar dynamically so
+            // that links loaded after the modal opened are included.
             scopeOptions.addEventListener('change', (e) => {
                 this._currentScope = e.target.value;
-                // Enable/disable export based on selection
                 if (this._currentScope === 'current') {
                     exportBtn.disabled = (msgCount === 0);
+                    status.textContent = '';
+                    status.className = 'copytex-export-status';
                 } else {
-                    exportBtn.disabled = (sidebarConvos.length === 0 && msgCount === 0);
+                    // Re-extract sidebar conversations each time user picks "All Chats"
+                    const freshConvos = extractSidebarConversations();
+                    // Update the shared reference so _doExport sees the same list
+                    sidebarConvos.length = 0;
+                    freshConvos.forEach(c => sidebarConvos.push(c));
+
+                    // Update the "All Chats" card description
+                    const allChatsDesc = scopeOptions.querySelector('input[value="all"]')
+                        ?.closest('label')?.querySelector('.eo-desc');
+                    if (allChatsDesc) {
+                        allChatsDesc.textContent = freshConvos.length > 0
+                            ? freshConvos.length + ' found'
+                            : 'Sidebar links';
+                    }
+
+                    exportBtn.disabled = (freshConvos.length === 0 && msgCount === 0);
+                    if (freshConvos.length === 0) {
+                        status.textContent = 'No conversations found in sidebar. Make sure the sidebar is open.';
+                        status.className = 'copytex-export-status err';
+                    } else {
+                        status.textContent = '';
+                        status.className = 'copytex-export-status';
+                    }
                 }
             });
             fmtOptions.addEventListener('change', (e) => {
@@ -587,15 +762,28 @@
             let fileCount = 0;
             let totalMessages = 0;
 
-            for (const r of results) {
+            const usedNames = new Set();
+            for (let idx = 0; idx < results.length; idx++) {
+                const r = results[idx];
                 if (r.messageCount > 0) {
-                    const safeName = exporter.sanitizeFilename(r.title || r.originalTitle || 'conversation');
+                    let baseName = exporter.sanitizeFilename(r.originalTitle || r.title || 'conversation');
+                    // Ensure unique file names: append index if the name was already used
+                    let safeName = baseName;
+                    if (usedNames.has(safeName)) {
+                        safeName = baseName + '_' + (idx + 1);
+                    }
+                    // Still colliding (unlikely but safe)
+                    while (usedNames.has(safeName)) {
+                        safeName = baseName + '_' + (idx + 1) + '_' + Date.now();
+                    }
+                    usedNames.add(safeName);
+
                     if (r.markdown) {
-                        zip.file(safeName + '_' + timestamp + '.md', r.markdown);
+                        zip.file(timestamp + '_' + safeName + '.md', r.markdown);
                         fileCount++;
                     }
                     if (r.json) {
-                        zip.file(safeName + '_' + timestamp + '.json', r.json);
+                        zip.file(timestamp + '_' + safeName + '.json', r.json);
                         fileCount++;
                     }
                     totalMessages += r.messageCount;

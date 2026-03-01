@@ -47,9 +47,12 @@
         },
         grok: {
             hosts: ['grok.com'],
-            inputSelector: 'textarea, [contenteditable="true"]',
-            containerSelector: 'form, [class*="input-wrap"]',
-            getOffset: () => ({ top: 8, left: 0 }),
+            inputSelector: 'textarea[placeholder], [contenteditable="true"]',
+            // Do not use 'form' as container on the Grok homepage because the form
+            // is centred and very wide, pushing the button far from the input.
+            // Using null forces _getInputContainer to fall back to the input itself.
+            containerSelector: null,
+            getOffset: () => ({ top: 8, left: -19 }),
             insertText: (input, text) => {
                 if (input.isContentEditable) insertContentEditable(input, text);
                 else insertTextarea(input, text);

@@ -47,6 +47,16 @@
             hosts: ['poe.com'],
             name: 'Poe',
             icon: '💬'
+        },
+        doubao: {
+            hosts: ['www.doubao.com', 'doubao.com'],
+            name: 'Doubao',
+            icon: '🫘'
+        },
+        qianwen: {
+            hosts: ['www.qianwen.com', 'qianwen.com', 'tongyi.aliyun.com'],
+            name: 'Qianwen',
+            icon: '🔮'
         }
     };
 
@@ -63,12 +73,87 @@
 
     function getConversationTitle() {
         let title = document.title || '';
-        // Clean up platform-specific suffixes
+        // Clean up platform-specific suffixes/prefixes
         title = title
-            .replace(/\s*[-–|·]\s*(ChatGPT|Google Gemini|Gemini|DeepSeek|DeepSeek Chat|Claude|Grok|Kimi|Poe).*$/i, '')
-            .replace(/^(ChatGPT|Google Gemini|Gemini|DeepSeek|Claude|Grok|Kimi|Poe)\s*[-–|·]\s*/i, '')
+            .replace(/\s*[-–|·]\s*(ChatGPT|Google Gemini|Gemini|DeepSeek|DeepSeek Chat|Claude|Grok|Kimi|Poe|豆包|Doubao|通义千问|千问|Qianwen|Qwen).*$/i, '')
+            .replace(/^(ChatGPT|Google Gemini|Gemini|DeepSeek|Claude|Grok|Kimi|Poe|豆包|Doubao|通义千问|千问|Qianwen|Qwen)\s*[-–|·]\s*/i, '')
+            .replace(/^\u200E+/, '')
             .trim();
+
+        // If after cleanup the title is exactly a platform name (or empty),
+        // treat it as no title so platform-specific fallback logic can run.
+        const platformOnlyNames = /^(ChatGPT|Google Gemini|Gemini|DeepSeek|DeepSeek Chat|Claude|Grok|Kimi|Poe|豆包|Doubao|通义千问|千问|Qianwen|Qwen|豆包\s*[-–]\s*字节跳动旗下\s*AI\s*智能助手|千问-Qwen最新模型体验-通义千问官网)$/i;
+        if (platformOnlyNames.test(title)) {
+            title = '';
+        }
+
         const platform = detectPlatform();
+
+        if (!title && platform?.id === 'gemini') {
+            // Gemini's document.title is just "Google Gemini" without the conversation name.
+            // The active conversation in the sidebar carries a "selected" CSS class.
+            const activeSelectors = [
+                'a.conversation.selected',
+                'a.selected[href*="/app/"]',
+                'a[href*="/app/"].active',
+                'a[href*="/app/"][aria-selected="true"]',
+            ];
+            for (const sel of activeSelectors) {
+                const el = document.querySelector(sel);
+                if (el?.textContent?.trim()) {
+                    title = el.textContent.trim();
+                    break;
+                }
+            }
+            // Match current URL path to find the corresponding sidebar link
+            if (!title) {
+                const pathMatch = location.pathname.match(/\/app\/([^/?#]+)/);
+                if (pathMatch) {
+                    const link = document.querySelector(`a[href*="/app/${pathMatch[1]}"]`);
+                    if (link?.textContent?.trim()) {
+                        title = link.textContent.trim();
+                    }
+                }
+            }
+            // Last resort: use the first user message (truncated) as the title
+            if (!title) {
+                const firstUser = document.querySelector('user-query, .user-query');
+                if (firstUser) {
+                    const inner = firstUser.querySelector('.query-text, [class*="query-text"], .query-content') || firstUser;
+                    let raw = (inner.textContent || '').trim();
+                    raw = raw.replace(/^(你说[：: ]?|You said[: ]?)/i, '').trim();
+                    if (raw) title = raw.length > 50 ? raw.substring(0, 50) : raw;
+                }
+            }
+        }
+
+        // Doubao: title is generic "豆包 - 字节跳动旗下 AI 智能助手"
+        if (!title && platform?.id === 'doubao') {
+            const pathMatch = location.pathname.match(/\/chat\/(\d+)/);
+            if (pathMatch) {
+                const link = document.querySelector(`a[href*="/chat/${pathMatch[1]}"]`);
+                if (link?.textContent?.trim()) {
+                    title = link.textContent.trim();
+                }
+            }
+            if (!title) {
+                const firstSend = document.querySelector('[class*="container-QQkdo4"]');
+                if (firstSend) {
+                    const raw = (firstSend.textContent || '').trim();
+                    if (raw) title = raw.length > 50 ? raw.substring(0, 50) : raw;
+                }
+            }
+        }
+
+        // Qianwen: title is generic "千问-Qwen最新模型体验-通义千问官网"
+        if (!title && platform?.id === 'qianwen') {
+            const firstBubble = document.querySelector('[class*="bubble-"]');
+            if (firstBubble) {
+                const raw = (firstBubble.textContent || '').trim();
+                if (raw) title = raw.length > 50 ? raw.substring(0, 50) : raw;
+            }
+        }
+
         return title || (platform ? `${platform.name} Conversation` : 'AI Conversation');
     }
 
@@ -120,6 +205,14 @@
         if (el.hidden || el.getAttribute('aria-hidden') === 'true') return '';
         const style = el.style;
         if (style && (style.display === 'none' || style.visibility === 'hidden')) return '';
+
+        // Skip DeepSeek thinking/reasoning blocks (chain-of-thought should not appear in export)
+        const cls = el.className || '';
+        if (typeof cls === 'string' && (
+            cls.includes('thinking') || cls.includes('think-block') ||
+            cls.includes('ds-think') || cls.includes('reasoning') ||
+            cls.includes('chain-of-thought')
+        )) return '';
 
         // Handle math elements — preserve LaTeX
         if (el.classList.contains('katex') || el.classList.contains('katex-display') ||
@@ -274,52 +367,104 @@
     function extractGeminiMessages() {
         const messages = [];
 
-        // Strategy 1: query-content and model-response pairs in turns
-        const turns = document.querySelectorAll('.conversation-turn, [class*="turn-content"], [class*="conversation-container"] > div');
+        // Helper: extract LaTeX-preserving content from a user-query element.
+        // Gemini renders user messages with KaTeX, so we use extractRichContent
+        // instead of innerText to avoid broken formula fragments.
+        function extractGeminiUserContent(el) {
+            // Prefer the inner query-text container which holds the actual text/formula nodes.
+            const inner = el.querySelector('.query-text, [class*="query-text"]') || el;
+            // Use extractRichContent to preserve any KaTeX / math-inline elements.
+            let content = extractRichContent(inner);
+            if (!content) {
+                content = inner.innerText?.trim() || '';
+            }
+            // Strip Gemini's "你说" / "You said" label that gets captured alongside the query text
+            content = content.replace(/^(你说[：:\s]?|You said[:\s]?)/i, '').trim();
+            return content;
+        }
+
+        function cleanGeminiAssistantContent(content) {
+            // Remove "Gemini 说" / "Gemini said" headings injected by Gemini UI
+            content = content.replace(/^#{1,3}\s*Gemini\s*(说|said)\s*\n*/i, '').trim();
+            return content;
+        }
+
+        // Strategy 1: Interleave user-query and model-response custom elements.
+        // These are the most reliable top-level semantic elements on Gemini.
+        // We collect both sets, tag each with its role + DOM position, then sort.
+        const userQueryEls = Array.from(document.querySelectorAll('user-query, .user-query'));
+        const modelResponseEls = Array.from(document.querySelectorAll('model-response, .model-response'));
+
+        if (userQueryEls.length > 0 || modelResponseEls.length > 0) {
+            const all = [];
+            userQueryEls.forEach(el => all.push({ el, role: 'user' }));
+            modelResponseEls.forEach(el => all.push({ el, role: 'assistant' }));
+            // Sort by DOM position (ensures correct interleaving regardless of query count)
+            all.sort((a, b) =>
+                a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+            );
+            // Deduplicate: skip elements that are descendants of already-added elements
+            const seen = new Set();
+            all.forEach(({ el, role }) => {
+                // Skip if any previously seen element contains this one
+                for (const s of seen) {
+                    if (s.contains(el)) return;
+                }
+                seen.add(el);
+                let content;
+                if (role === 'user') {
+                    content = extractGeminiUserContent(el);
+                } else {
+                    // Prefer the markdown panel inside model-response
+                    const mdPanel = el.querySelector('.markdown-main-panel, .model-response-text, .response-content, [class*="response-content"]') || el;
+                    content = cleanGeminiAssistantContent(extractRichContent(mdPanel));
+                }
+                if (content) messages.push({ role, content });
+            });
+            if (messages.length > 0) return messages;
+        }
+
+        // Strategy 2: Explicit conversation turns with query + response children
+        const turns = document.querySelectorAll('.conversation-turn, [class*="turn-content"]');
         if (turns.length > 0) {
             turns.forEach(turn => {
-                const queryEl = turn.querySelector('.query-text, .query-content, [class*="query"]');
+                // Prioritise more specific selectors over generic [class*="query"]
+                const queryEl = turn.querySelector('.query-text, .query-content, [class*="query-text"]');
                 const responseEl = turn.querySelector('.model-response-text, .response-content, [class*="model-response"], .markdown-main-panel');
                 if (queryEl) {
-                    const content = queryEl.innerText?.trim();
-                    if (content) messages.push({ role: 'user', content });
+                    let content = extractRichContent(queryEl);
+                    if (content) {
+                        content = content.replace(/^(你说[：:\s]?|You said[:\s]?)/i, '').trim();
+                        if (content) messages.push({ role: 'user', content });
+                    }
                 }
                 if (responseEl) {
-                    const content = extractRichContent(responseEl);
+                    const content = cleanGeminiAssistantContent(extractRichContent(responseEl));
                     if (content) messages.push({ role: 'assistant', content });
                 }
             });
             if (messages.length > 0) return messages;
         }
 
-        // Strategy 2: message-content custom elements
-        const messageContents = document.querySelectorAll('message-content');
+        // Strategy 3: message-content custom elements (alternate Gemini layout)
+        const messageContents = Array.from(document.querySelectorAll('message-content'));
         if (messageContents.length > 0) {
-            messageContents.forEach((mc, index) => {
-                const isUser = index % 2 === 0;
-                const content = isUser
-                    ? mc.innerText?.trim()
-                    : extractRichContent(mc);
-                if (content) messages.push({ role: isUser ? 'user' : 'assistant', content });
+            // Determine role from parent custom element tag when possible
+            messageContents.forEach(mc => {
+                const parentTag = mc.parentElement?.tagName?.toLowerCase() || '';
+                let role;
+                if (parentTag === 'user-query' || parentTag.includes('user')) {
+                    role = 'user';
+                } else if (parentTag === 'model-response' || parentTag.includes('model') || parentTag.includes('response')) {
+                    role = 'assistant';
+                } else {
+                    return; // cannot determine role
+                }
+                const content = role === 'user'
+                    ? extractGeminiUserContent(mc)
+                    : cleanGeminiAssistantContent(extractRichContent(mc));
+                if (content) messages.push({ role, content });
             });
-            if (messages.length > 0) return messages;
-        }
-
-        // Strategy 3: Look for user-query and model-response elements
-        const userQueries = document.querySelectorAll('user-query, .user-query');
-        const modelResponses = document.querySelectorAll('model-response, .model-response');
-        if (userQueries.length > 0 || modelResponses.length > 0) {
-            const maxLen = Math.max(userQueries.length, modelResponses.length);
-            for (let i = 0; i < maxLen; i++) {
-                if (i < userQueries.length) {
-                    const content = userQueries[i].innerText?.trim();
-                    if (content) messages.push({ role: 'user', content });
-                }
-                if (i < modelResponses.length) {
-                    const content = extractRichContent(modelResponses[i]);
-                    if (content) messages.push({ role: 'assistant', content });
-                }
-            }
             if (messages.length > 0) return messages;
         }
 
@@ -327,42 +472,166 @@
         return extractGenericMessages();
     }
 
+    // DeepSeek wraps its "thinking" (chain-of-thought) in a separate container.
+    // We must skip that block and only export the actual answer.
+    function extractDeepSeekAnswer(msgEl) {
+        // Clone so we can safely remove nodes without affecting the live DOM
+        const clone = msgEl.cloneNode(true);
+
+        // Remove thinking/reasoning blocks
+        // DeepSeek uses class names like "ds-thinking", "_thinking_", "thinking-block", etc.
+        const thinkSelectors = [
+            '[class*="thinking"]',
+            '[class*="think-block"]',
+            '[class*="ds-think"]',
+            '[class*="reasoning"]',
+            '[class*="chain-of-thought"]',
+            'details',          // thinking is often hidden inside <details>
+        ];
+        thinkSelectors.forEach(sel => {
+            clone.querySelectorAll(sel).forEach(el => el.remove());
+        });
+
+        // Now find the markdown answer content
+        const answerEl = clone.querySelector('.ds-markdown, .markdown-body, .markdown, [class*="message-content"], [class*="msg-content"]')
+            || clone;
+        return extractRichContent(answerEl);
+    }
+
     function extractDeepSeekMessages() {
         const messages = [];
 
-        // Strategy 1: Role-based containers
-        const chatMessages = document.querySelectorAll('[class*="chat-message"], [class*="ds-message"], [class*="msg-item"]');
-        if (chatMessages.length > 0) {
-            chatMessages.forEach(msg => {
-                const classList = msg.className || '';
-                const dataRole = msg.getAttribute('data-role') || '';
-                let role = 'assistant';
-                if (classList.includes('user') || dataRole === 'user') role = 'user';
-                else if (classList.includes('assistant') || classList.includes('bot') || dataRole === 'assistant') role = 'assistant';
+        // ── Strategy 1: Use .ds-message elements directly.
+        //
+        // DeepSeek DOM (observed Mar 2026):
+        //
+        //  div.dad65929                           ← conversation turn container
+        //    ├─ div.d29f3d7d.ds-message           ← user message (no .ds-markdown)
+        //    │    └─ div.fbb737a4                  ← actual user text
+        //    ├─ div._4f9bf79._43c05b5             ← assistant wrapper
+        //    │    └─ div.ds-message                ← assistant (has .ds-markdown)
+        //    │         ├─ div.ds-think-content     ← thinking (skip)
+        //    │         └─ div.ds-markdown           ← answer
+        //    ├─ div.d29f3d7d.ds-message           ← next user message
+        //    ├─ div._4f9bf79._43c05b5             ← next assistant wrapper
+        //    │    └─ div.ds-message                ← ...
+        //    └─ ...
+        //
+        // All .ds-message elements appear in correct DOM order.
+        // User messages: .ds-message WITHOUT .ds-markdown descendant.
+        // Assistant messages: .ds-message WITH .ds-markdown descendant.
 
-                const contentEl = msg.querySelector('.ds-markdown, .markdown-body, .markdown, [class*="message-content"], [class*="msg-content"]')
-                    || msg;
-                const content = role === 'user'
-                    ? contentEl.innerText?.trim()
-                    : extractRichContent(contentEl);
+        const allDsMessages = Array.from(document.querySelectorAll('.ds-message'));
+
+        if (allDsMessages.length > 0) {
+            // Deduplicate: a user .ds-message is never nested inside another
+            // .ds-message, but an assistant .ds-message IS nested inside the
+            // _4f9bf79 wrapper. Filter out any .ds-message that is an ancestor
+            // of another .ds-message (shouldn't happen, but be safe).
+            const filtered = allDsMessages.filter((el, idx) => {
+                return !allDsMessages.some((other, j) => j !== idx && el.contains(other) && el !== other);
+            });
+
+            filtered.forEach(el => {
+                const hasMarkdown = !!el.querySelector('.ds-markdown');
+                if (hasMarkdown) {
+                    const content = extractDeepSeekAnswer(el);
+                    if (content) messages.push({ role: 'assistant', content });
+                } else {
+                    const inner = el.querySelector('[class*="fbb737a4"]') || el;
+                    const text = inner.innerText?.trim();
+                    if (text && text.length > 0) {
+                        messages.push({ role: 'user', content: text });
+                    }
+                }
+            });
+
+            if (messages.length > 0) return messages;
+        }
+
+        // ── Strategy 2: data-role attributes
+        const byDataRole = Array.from(document.querySelectorAll('[data-role]'));
+        if (byDataRole.length > 0) {
+            byDataRole.forEach(el => {
+                const role = el.getAttribute('data-role');
+                if (role !== 'user' && role !== 'assistant') return;
+                let content;
+                if (role === 'user') {
+                    const inner = el.querySelector('[class*="message-content"], [class*="msg-content"], [class*="user-input"]') || el;
+                    content = inner.innerText?.trim();
+                } else {
+                    content = extractDeepSeekAnswer(el);
+                }
                 if (content) messages.push({ role, content });
             });
             if (messages.length > 0) return messages;
         }
 
-        // Strategy 2: Alternating message blocks in chat container
-        const chatContainer = document.querySelector('[class*="chat-container"], [class*="conversation"], main');
-        if (chatContainer) {
-            const blocks = chatContainer.querySelectorAll('[class*="message"]');
-            blocks.forEach(block => {
-                const classList = block.className || '';
-                if (classList.includes('system') || classList.includes('divider')) return;
-                let role = 'assistant';
-                if (classList.includes('user') || classList.includes('human')) role = 'user';
-                const contentEl = block.querySelector('.ds-markdown, .markdown-body, .markdown') || block;
-                const content = role === 'user'
-                    ? contentEl.innerText?.trim()
-                    : extractRichContent(contentEl);
+        // ── Strategy 3: .ds-markdown elements with sibling-based user discovery
+        if (dsMarkdowns.length > 0) {
+            const allTurns = [];
+            const seenEls = new Set();
+
+            dsMarkdowns.forEach(md => {
+                // Walk up to find the turn-level parent
+                let turnEl = md.parentElement;
+                for (let i = 0; i < 8 && turnEl && turnEl !== document.body; i++) {
+                    if (turnEl.previousElementSibling || turnEl.nextElementSibling) break;
+                    turnEl = turnEl.parentElement;
+                }
+                if (!turnEl || seenEls.has(turnEl)) return;
+                seenEls.add(turnEl);
+                allTurns.push({ el: turnEl, role: 'assistant' });
+
+                // Find the preceding user turn (sibling that does NOT contain .ds-markdown)
+                let prev = turnEl.previousElementSibling;
+                while (prev) {
+                    if (!prev.querySelector('.ds-markdown') && !seenEls.has(prev)) {
+                        const text = prev.innerText?.trim();
+                        if (text && text.length > 1) {
+                            seenEls.add(prev);
+                            allTurns.push({ el: prev, role: 'user' });
+                            break;
+                        }
+                    }
+                    prev = prev.previousElementSibling;
+                }
+            });
+
+            allTurns.sort((a, b) =>
+                a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+            );
+
+            allTurns.forEach(({ el, role }) => {
+                let content;
+                if (role === 'user') {
+                    content = el.innerText?.trim();
+                } else {
+                    content = extractDeepSeekAnswer(el);
+                }
+                if (content) messages.push({ role, content });
+            });
+
+            if (messages.length > 0) return messages;
+        }
+
+        // ── Strategy 4: Role-based class containers (older DeepSeek layout)
+        const chatMessages = document.querySelectorAll('[class*="chat-message"], [class*="ds-message"], [class*="msg-item"]');
+        if (chatMessages.length > 0) {
+            chatMessages.forEach(msg => {
+                const cls = (msg.className || '') + ' ' + (msg.getAttribute('data-role') || '');
+                let role = null;
+                if (/\buser\b|human/i.test(cls)) role = 'user';
+                else if (/\bassistant\b|\bbot\b/i.test(cls)) role = 'assistant';
+                else if (msg.querySelector('.ds-markdown')) role = 'assistant';
+                if (!role) return;
+                let content;
+                if (role === 'user') {
+                    const inner = msg.querySelector('[class*="message-content"], [class*="msg-content"]') || msg;
+                    content = inner.innerText?.trim();
+                } else {
+                    content = extractDeepSeekAnswer(msg);
+                }
                 if (content) messages.push({ role, content });
             });
             if (messages.length > 0) return messages;
@@ -404,9 +673,9 @@
         // Strategy 2: Conversation turns
         const turns = document.querySelectorAll('[class*="conversation-turn"], [class*="chat-message"]');
         turns.forEach(turn => {
-            const classList = turn.className || '';
+            const cls = String(turn.className || '');
             let role = 'assistant';
-            if (classList.includes('human') || classList.includes('user')) role = 'user';
+            if (cls.includes('human') || cls.includes('user')) role = 'user';
             const content = role === 'user'
                 ? turn.innerText?.trim()
                 : extractRichContent(turn);
@@ -422,10 +691,10 @@
         // Grok messages in conversation container
         const msgElements = document.querySelectorAll('[class*="message"], [class*="chat-turn"]');
         msgElements.forEach(msg => {
-            const classList = msg.className || '';
-            if (classList.includes('system')) return;
+            const cls = String(msg.className || '');
+            if (cls.includes('system')) return;
             let role = 'assistant';
-            if (classList.includes('user') || classList.includes('human')) role = 'user';
+            if (cls.includes('user') || cls.includes('human')) role = 'user';
             const contentEl = msg.querySelector('.markdown, .markdown-body, [class*="message-content"]') || msg;
             const content = role === 'user'
                 ? contentEl.innerText?.trim()
@@ -442,10 +711,10 @@
         // Kimi message containers
         const msgElements = document.querySelectorAll('[class*="chat-message"], [class*="msg-"], [class*="message-item"]');
         msgElements.forEach(msg => {
-            const classList = msg.className || '';
+            const cls = String(msg.className || '');
             const dataRole = msg.getAttribute('data-role') || '';
             let role = 'assistant';
-            if (classList.includes('user') || dataRole === 'user') role = 'user';
+            if (cls.includes('user') || dataRole === 'user') role = 'user';
             const contentEl = msg.querySelector('.markdown-body, .markdown, [class*="content"]') || msg;
             const content = role === 'user'
                 ? contentEl.innerText?.trim()
@@ -459,25 +728,146 @@
     function extractPoeMessages() {
         const messages = [];
 
-        // Poe message containers
-        const msgElements = document.querySelectorAll('[class*="Message"], [class*="chatMessage"], [class*="message_row"]');
-        msgElements.forEach(msg => {
-            const classList = msg.className || '';
-            let role = 'assistant';
-            if (classList.includes('human') || classList.includes('Human') || classList.includes('user') || classList.includes('User')) {
-                role = 'user';
-            }
-            if (classList.includes('bot') || classList.includes('Bot') || classList.includes('assistant')) {
-                role = 'assistant';
-            }
-            const contentEl = msg.querySelector('.Markdown, .markdown, .markdown_body, [class*="message_content"]') || msg;
-            const content = role === 'user'
-                ? contentEl.innerText?.trim()
-                : extractRichContent(contentEl);
-            if (content) messages.push({ role, content });
-        });
+        // Poe DOM (observed Mar 2026):
+        //
+        //  div.ChatMessagesView_messageTuple__xxx   ← one per turn (user+bot pair)
+        //    ├─ div.ChatMessage_chatMessage__xxx     ← user message
+        //    │    └─ ...Message_messageTextContainer__xxx
+        //    │         └─ div.Markdown_markdownContainer__xxx  (user text)
+        //    └─ div.ChatMessage_chatMessage__xxx     ← bot response
+        //         └─ ...Message_messageTextContainer__xxx
+        //              └─ div.Markdown_markdownContainer__xxx  (bot text)
+        //
+        // Each tuple contains exactly 2 ChatMessage_chatMessage elements.
+        // The first is the user (right-aligned), the second is the bot.
+
+        // Strategy 1: Use message tuples for reliable user/bot pairing
+        const tuples = document.querySelectorAll('[class*="messageTuple"], [class*="message_tuple"]');
+        if (tuples.length > 0) {
+            tuples.forEach(tuple => {
+                const chatMsgs = tuple.querySelectorAll('[class*="chatMessage"]');
+                chatMsgs.forEach((msg, idx) => {
+                    const cls = String(msg.className || '');
+                    const contentEl = msg.querySelector('[class*="Markdown_markdownContainer"], [class*="markdownContainer"], [class*="messageTextContainer"]') || msg;
+                    // In a tuple, the first chatMessage is user, second is bot.
+                    // Also check for rightSide class as a hint for user messages.
+                    const isUser = idx === 0 || cls.includes('rightSide');
+                    const role = isUser ? 'user' : 'assistant';
+                    const content = role === 'user'
+                        ? contentEl.innerText?.trim()
+                        : extractRichContent(contentEl);
+                    if (content) messages.push({ role, content });
+                });
+            });
+            if (messages.length > 0) return messages;
+        }
+
+        // Strategy 2: Direct chatMessage elements sorted by DOM order
+        const chatMessages = document.querySelectorAll('[class*="chatMessage"]');
+        if (chatMessages.length > 0) {
+            chatMessages.forEach((msg, idx) => {
+                const cls = String(msg.className || '');
+                const contentEl = msg.querySelector('[class*="Markdown_markdownContainer"], [class*="markdownContainer"], [class*="messageTextContainer"]') || msg;
+                const isUser = cls.includes('rightSide') || cls.includes('Right') || idx % 2 === 0;
+                const role = isUser ? 'user' : 'assistant';
+                const content = role === 'user'
+                    ? contentEl.innerText?.trim()
+                    : extractRichContent(contentEl);
+                if (content) messages.push({ role, content });
+            });
+            if (messages.length > 0) return messages;
+        }
+
+        // Strategy 3: Markdown containers paired with Message_row elements
+        const messageRows = document.querySelectorAll('[class*="Message_row"]');
+        if (messageRows.length > 0) {
+            messageRows.forEach((row, idx) => {
+                const cls = String(row.className || '');
+                const contentEl = row.querySelector('[class*="markdownContainer"], [class*="messageText"]') || row;
+                const isUser = cls.includes('rightSide') || cls.includes('Right') || cls.includes('human') || idx % 2 === 0;
+                const role = isUser ? 'user' : 'assistant';
+                const content = role === 'user'
+                    ? contentEl.innerText?.trim()
+                    : extractRichContent(contentEl);
+                if (content) messages.push({ role, content });
+            });
+            if (messages.length > 0) return messages;
+        }
+
+        return extractGenericMessages();
+    }
+
+    function extractDoubaoMessages() {
+        const messages = [];
+
+        // Doubao DOM (observed Mar 2026):
+        //   div.message-block-container-xxx  ← one per turn
+        //     User turn:  contains div.container-QQkdo4 (send bubble, user text)
+        //     Bot turn:   contains div.container-P2rR72.flow-markdown-body (markdown)
+        const blocks = document.querySelectorAll('[class*="message-block-container"]');
+        if (blocks.length > 0) {
+            blocks.forEach(block => {
+                const sendEl = block.querySelector('[class*="container-QQkdo4"]');
+                const mdEl = block.querySelector('[class*="flow-markdown-body"]');
+                if (sendEl && !mdEl) {
+                    const text = sendEl.innerText?.trim();
+                    if (text) messages.push({ role: 'user', content: text });
+                } else if (mdEl) {
+                    const content = extractRichContent(mdEl);
+                    if (content) messages.push({ role: 'assistant', content });
+                }
+            });
+            if (messages.length > 0) return messages;
+        }
+
+        // Fallback: use send containers for user + paragraph elements for bot
+        const sends = document.querySelectorAll('[class*="container-QQkdo4"]');
+        if (sends.length > 0) {
+            sends.forEach(el => {
+                const text = el.innerText?.trim();
+                if (text) messages.push({ role: 'user', content: text });
+            });
+        }
 
         return messages.length > 0 ? messages : extractGenericMessages();
+    }
+
+    function extractQianwenMessages() {
+        const messages = [];
+
+        // Qianwen DOM (observed Mar 2026):
+        //   div.bubble-uo23is         ← user message text
+        //   div.answerItem-SsrVa_     ← bot answer container
+        //     div.answerMeta-xxx        ← metadata (model name, time) — skip
+        //     div.markdown-pc-special-class / div.qk-markdown  ← answer content
+        //
+        // Bubbles and answerItems alternate in DOM order.
+
+        const bubbles = Array.from(document.querySelectorAll('[class*="bubble-"]'));
+        const answers = Array.from(document.querySelectorAll('[class*="answerItem-"]'));
+
+        if (bubbles.length > 0 || answers.length > 0) {
+            const all = [];
+            bubbles.forEach(el => all.push({ el, role: 'user' }));
+            answers.forEach(el => all.push({ el, role: 'assistant' }));
+            all.sort((a, b) =>
+                a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+            );
+
+            all.forEach(({ el, role }) => {
+                if (role === 'user') {
+                    const text = el.innerText?.trim();
+                    if (text) messages.push({ role: 'user', content: text });
+                } else {
+                    const mdEl = el.querySelector('.markdown-pc-special-class, .qk-markdown, [class*="markdown"]') || el;
+                    const content = extractRichContent(mdEl);
+                    if (content) messages.push({ role: 'assistant', content });
+                }
+            });
+            if (messages.length > 0) return messages;
+        }
+
+        return extractGenericMessages();
     }
 
     // Generic fallback extractor for unsupported or changed layouts
@@ -497,14 +887,14 @@
             const elements = document.querySelectorAll(selector);
             if (elements.length >= 2) {
                 elements.forEach((el, index) => {
-                    const classList = el.className || '';
+                    const cls = String(el.className || '');
                     const text = el.innerText?.trim();
                     if (!text || text.length < 2) return;
                     // Heuristic: even = user, odd = assistant
                     let role = index % 2 === 0 ? 'user' : 'assistant';
                     // Override if class hints are available
-                    if (classList.includes('user') || classList.includes('human')) role = 'user';
-                    if (classList.includes('assistant') || classList.includes('bot') || classList.includes('ai')) role = 'assistant';
+                    if (cls.includes('user') || cls.includes('human')) role = 'user';
+                    if (cls.includes('assistant') || cls.includes('bot') || cls.includes('ai')) role = 'assistant';
                     const content = role === 'user' ? text : extractRichContent(el);
                     if (content) messages.push({ role, content });
                 });
@@ -528,6 +918,8 @@
             case 'grok': return extractGrokMessages();
             case 'kimi': return extractKimiMessages();
             case 'poe': return extractPoeMessages();
+            case 'doubao': return extractDoubaoMessages();
+            case 'qianwen': return extractQianwenMessages();
             default: return extractGenericMessages();
         }
     }
@@ -609,13 +1001,13 @@
 
         if (format === 'markdown' || format === 'both') {
             const md = formatAsMarkdown(messages, title);
-            const filename = `${safeName}_${timestamp}.md`;
+            const filename = `${timestamp}_${safeName}.md`;
             downloadFile(md, filename, 'text/markdown;charset=utf-8');
             results.push(filename);
         }
         if (format === 'json' || format === 'both') {
             const json = formatAsJSON(messages, title);
-            const filename = `${safeName}_${timestamp}.json`;
+            const filename = `${timestamp}_${safeName}.json`;
             downloadFile(json, filename, 'application/json;charset=utf-8');
             results.push(filename);
         }
@@ -672,7 +1064,12 @@
                 function tryExtract() {
                     const messages = extractMessages();
                     if (messages.length > 0 || Date.now() - startTime >= maxWait) {
-                        const title = getConversationTitle();
+                        let title = getConversationTitle();
+                        const platform = detectPlatform();
+                        const platformNames = ['Gemini Conversation', 'DeepSeek Conversation', 'ChatGPT Conversation', 'Claude Conversation', 'Grok Conversation', 'Kimi Conversation', 'Poe Conversation', 'Doubao Conversation', 'Qianwen Conversation', 'AI Conversation'];
+                        if (request.sidebarTitle && (!title || platformNames.includes(title))) {
+                            title = request.sidebarTitle;
+                        }
                         const result = { title, messageCount: messages.length };
                         if (messages.length > 0) {
                             if (request.format === 'markdown' || request.format === 'both') {

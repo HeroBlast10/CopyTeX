@@ -5,7 +5,7 @@ CopyTeX helps you capture the *real* LaTeX source behind math formulas on modern
 ## Why Install CopyTeX?
 - **Accurate Source Retrieval** – Extracts the authoring LaTeX directly from KaTeX/MathJax data nodes instead of guessing from the rendered HTML, so you receive clean, compiler‑ready output.
 - **Time Saver** – Skip manual transcription and screenshotting; one double click replaces minutes of retyping complex integrals, matrices, or proofs.
-- **Cross-Platform Coverage** – Works seamlessly across major AI chat services (Gemini, ChatGPT, Claude, DeepSeek, Grok, Kimi, Poe) and any webpage that uses common math renderers.
+- **Cross-Platform Coverage** – Works seamlessly across major AI chat services (Gemini, ChatGPT, Claude, DeepSeek, Grok, Kimi, Poe, Doubao, Qianwen) and any webpage that uses common math renderers.
 - **Instant Feedback** – A minimal toast confirms each successful copy, making bulk capture quick and reliable.
 
 ## Key Features
@@ -16,7 +16,7 @@ CopyTeX helps you capture the *real* LaTeX source behind math formulas on modern
 
 ## Quick Start
 1. Load the extension into Chrome/Edge (Developer Mode → *Load unpacked* → select this folder).
-2. Open a supported AI platform (Gemini, Grok, ChatGPT, Claude, DeepSeek, Kimi, Poe, etc.) and generate a response containing math.
+2. Open a supported AI platform (Gemini, Grok, ChatGPT, Claude, DeepSeek, Kimi, Poe, Doubao, Qianwen, etc.) and generate a response containing math.
 3. Hover to highlight a formula, then double‑click it. A toast confirms the LaTeX is now on your clipboard.
 4. Paste the LaTeX wherever you need—Overleaf, Markdown notes, or computational notebooks.
 

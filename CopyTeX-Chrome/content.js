@@ -19,19 +19,30 @@ const browserAPI = (() => {
 // ============================================================
 //  Universal formula selectors — rendering-engine based
 //  NOT hostname based. Works on ANY site using these renderers.
+//
+//  IMPORTANT: Do NOT list both a container and its child selector
+//  (e.g. both .katex-display and .katex), because normalizeToFormulaRoot
+//  always maps everything up to the outermost container. Listing both
+//  causes the same final element to appear twice in the scan results,
+//  which defeats the data-copytex-ready deduplication guard.
+//
+//  Rule: always use the OUTERMOST selector for each renderer family.
+//  .katex-display  — covers block/display katex (contains .katex inside)
+//  .katex          — catches inline katex that has NO .katex-display ancestor
+//  These two are kept but normalizeToFormulaRoot maps .katex → .katex-display
+//  when a display ancestor exists, so both ultimately attach to one element.
 // ============================================================
 const FORMULA_SELECTORS = [
-    '.katex',                       // KaTeX (ChatGPT, Gemini, DeepSeek, Grok, etc.)
-    '.katex-display',               // KaTeX display mode
-    '.MathJax',                     // MathJax v2
+    '.katex-display',               // KaTeX display mode (outermost, checked first)
+    '.katex',                       // KaTeX inline (no .katex-display ancestor)
+    '.MathJax_Display',             // MathJax v2 display (outermost)
+    '.MathJax',                     // MathJax v2 inline
     '.MathJax_SVG',                 // MathJax v2 SVG
-    '.MathJax_Display',             // MathJax v2 display
-    '.mjx-container',               // MathJax v3
-    '.mjx-chtml',                   // MathJax v3 CHTML
+    '.mjx-container',               // MathJax v3 (outermost)
     '.mwe-math-element',            // MediaWiki (Wikipedia)
-    '.math-inline',                 // Various (Doubao, Gemini, etc.)
-    '.math-block',                  // Various block formulas
+    '.math-block',                  // Various block formulas (outermost)
     '.math-display',                // Various display formulas
+    '.math-inline',                 // Various inline formulas (Doubao, Gemini, etc.)
     '.ds-math',                     // DeepSeek specific
     '.formula-box',                 // Generic formula containers
     '[data-custom-copy-text]',      // Doubao-style
@@ -152,27 +163,57 @@ function cleanLatex(raw) {
 }
 
 // ============================================================
-//  Normalize: map any child element to its formula root
+//  Normalize: map any child element to its canonical formula root.
+//
+//  The invariant is: always return the OUTERMOST formula container,
+//  so that two different selector hits on the same formula tree
+//  both collapse to the exact same DOM node. The data-copytex-ready
+//  guard then prevents double attachment.
+//
+//  Priority (outermost first):
+//    1. .math-block / .math-display   (wrapper used by Gemini/Grok around katex)
+//    2. .katex-display                (KaTeX block)
+//    3. .math-inline                  (wrapper used by Gemini around inline katex)
+//    4. .MathJax_Display / .mjx-container  (MathJax block)
+//    5. .katex                        (inline KaTeX with no outer wrapper)
+//    6. .MathJax / .MathJax_SVG / .mjx-chtml  (inline MathJax)
+//    7. .mwe-math-element             (Wikipedia)
 // ============================================================
 function normalizeToFormulaRoot(element) {
     if (!(element instanceof Element)) return null;
 
     if (element.matches('annotation')) {
-        const root = element.closest('.katex, .MathJax, .mjx-container, .mwe-math-element, .math-inline, .math-block, .math-display');
+        const root = element.closest(
+            '.math-block, .math-display, .katex-display, .math-inline, ' +
+            '.MathJax_Display, .mjx-container, .mwe-math-element, .katex, ' +
+            '.MathJax, .MathJax_SVG, .mjx-chtml'
+        );
         if (root) return root;
     }
+
+    // Walk up to the outermost formula wrapper in priority order
+    const mathBlock = element.closest('.math-block, .math-display');
+    if (mathBlock) return mathBlock;
+
+    const katexDisplay = element.closest('.katex-display');
+    if (katexDisplay) return katexDisplay;
+
+    // .math-inline wraps inline KaTeX on Gemini/Grok — treat it as the root
+    // so that the inner .katex does not get a separate handler
+    const mathInline = element.closest('.math-inline');
+    if (mathInline) return mathInline;
+
+    const mathjaxDisplay = element.closest('.MathJax_Display, .mjx-container');
+    if (mathjaxDisplay) return mathjaxDisplay;
 
     const katex = element.closest('.katex');
     if (katex) return katex;
 
-    const mathjax = element.closest('.MathJax, .MathJax_SVG, .mjx-container, .mjx-chtml');
+    const mathjax = element.closest('.MathJax, .MathJax_SVG, .mjx-chtml');
     if (mathjax) return mathjax;
 
     const mwe = element.closest('.mwe-math-element');
     if (mwe) return mwe;
-
-    const mathContainer = element.closest('.math-inline, .math-block, .math-display');
-    if (mathContainer) return mathContainer;
 
     return element;
 }

@@ -5,6 +5,10 @@
 (function () {
     'use strict';
 
+    // Prevent double-injection (e.g. from content script re-injection in SPAs)
+    if (window.__copytexTimelineInit) return;
+    window.__copytexTimelineInit = true;
+
     const TRACK_PADDING = 14;   // px padding top/bottom inside the bar
     const MIN_DOT_GAP = 18;     // minimum px gap between dots
 
@@ -26,9 +30,22 @@
         },
         gemini: {
             hosts: ['gemini.google.com'],
-            userSelector: 'user-query, .user-query, .query-content',
+            // Use only the outermost custom element for Gemini user turns.
+            // .query-content is a child of user-query, so listing both would
+            // produce two nodes per message. Use the custom element tag only;
+            // fall back to .user-query if the custom element is absent.
+            userSelector: 'user-query',
+            userSelectorFallback: '.user-query',
             position: { top: 70, right: 16, bottom: 160 },
-            getText: el => (el.textContent || '').trim(),
+            getText: el => {
+                // Try to grab the actual query text from the inner content element.
+                // Exclude Gemini's own "你说" / "You said" label nodes which are
+                // rendered as a separate child (usually a <p> or <span> with that text).
+                const inner = el.querySelector('.query-text, [class*="query-text"], .query-content');
+                const raw = ((inner || el).textContent || '').trim();
+                // Strip leading "你说 " / "You said " / "你说：" injected by Gemini UI
+                return raw.replace(/^(你说[：: ]?|You said[: ]?)/i, '').trim();
+            },
             isConversation: () => /\/app\//.test(location.pathname) || document.querySelector('user-query, .user-query'),
             getScrollContainer: () => findScrollable(document.querySelector('.conversation-container, main'))
         },
@@ -170,10 +187,24 @@
             }, 800);
         }
 
+        _queryUserMessages() {
+            let els = Array.from(document.querySelectorAll(this.adapter.userSelector));
+            // If primary selector yields nothing, try fallback
+            if (els.length === 0 && this.adapter.userSelectorFallback) {
+                els = Array.from(document.querySelectorAll(this.adapter.userSelectorFallback));
+            }
+            // Deduplicate: remove any element that is a descendant of another element
+            // in the same list. This prevents double-counting when a selector matches
+            // both a parent and its child (e.g. user-query AND .query-content).
+            return els.filter(el =>
+                !els.some(other => other !== el && other.contains(el))
+            );
+        }
+
         _waitForMessages(timeout) {
             return new Promise(resolve => {
                 const check = () => {
-                    const msgs = document.querySelectorAll(this.adapter.userSelector);
+                    const msgs = this._queryUserMessages();
                     if (msgs.length > 0) { resolve(true); return true; }
                     return false;
                 };
@@ -226,8 +257,8 @@
 
         // ---- Core: calculate positions and render dots ----
         _recalcAndRender() {
-            // Gather user messages
-            const msgElements = Array.from(document.querySelectorAll(this.adapter.userSelector));
+            // Gather user messages (deduplicated)
+            const msgElements = this._queryUserMessages();
             if (msgElements.length === 0) {
                 this.track.innerHTML = '';
                 this.markers = [];
@@ -426,7 +457,7 @@
             this.observer = new MutationObserver(() => {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
-                    const newMsgs = document.querySelectorAll(this.adapter.userSelector);
+                    const newMsgs = this._queryUserMessages();
                     if (newMsgs.length !== this.markers.length) {
                         this._recalcAndRender();
                     }
@@ -468,10 +499,12 @@
     let timeline = null;
 
     function initTimeline() {
+        if (timeline) return;
         const adapter = detectAdapter();
         if (!adapter) return;
         if (!adapter.isConversation()) {
             setTimeout(() => {
+                if (timeline) return;
                 if (adapter.isConversation()) {
                     timeline = new CopyTexTimeline(adapter);
                     timeline.init();

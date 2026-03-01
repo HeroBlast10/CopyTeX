@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/HeroBlast10/CopyTeX/blob/main/CopyTeX-Chrome/LICENSE"><img src="https://img.shields.io/badge/license-MIT-7f2d9c" alt="License"></a>
   <img src="https://img.shields.io/badge/manifest-v3-7f2d9c" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/version-1.5.1-7f2d9c" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.0-7f2d9c" alt="Version">
 </p>
 
 ---
@@ -36,6 +36,8 @@ CopyTeX is a browser extension that supercharges your AI chat workflow:
 | **Grok** | ✅ | ✅ | ✅ | ✅ |
 | **Kimi** | ✅ | ✅ | ✅ | ✅ |
 | **Poe** | ✅ | ✅ | ✅ | ✅ |
+| **Doubao (豆包)** | ✅ | ✅ | — | ✅ |
+| **Qianwen (通义千问)** | ✅ | ✅ | — | ✅ |
 
 LaTeX copy also works on any webpage using KaTeX or MathJax renderers.
 
