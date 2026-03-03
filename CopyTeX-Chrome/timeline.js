@@ -73,21 +73,45 @@
             isConversation: () => document.querySelector('[class*="message"]'),
             getScrollContainer: () => document.scrollingElement || document.documentElement
         },
-        kimi: {
-            hosts: ['kimi.ai', 'kimi.moonshot.cn'],
-            userSelector: '[class*="chat-message"][class*="user"], [data-role="user"]',
-            position: { top: 70, right: 16, bottom: 140 },
-            getText: el => (el.textContent || '').trim(),
-            isConversation: () => document.querySelector('[class*="chat-message"]'),
-            getScrollContainer: () => document.scrollingElement || document.documentElement
-        },
         poe: {
             hosts: ['poe.com'],
-            userSelector: '[class*="Message"][class*="human"], [class*="Message"][class*="Human"]',
+            // Each messageTuple has 2 chatMessage children:
+            // [0] user (no LeftSideMessageHeader), [1] bot (has LeftSideMessageHeader).
+            // We collect all chatMessages then filter to those WITHOUT a left-side header.
+            userSelector: '[class*="chatMessage"]',
+            position: { top: 70, right: 16, bottom: 140 },
+            getText: el => (el.querySelector('[class*="Markdown_markdownContainer"], [class*="markdownContainer"]') || el).textContent.trim(),
+            isConversation: () => !!document.querySelector('[class*="messageTuple"]'),
+            getScrollContainer: () => findScrollable(document.querySelector('[class*="ChatMessagesView"], [class*="chatMessages"], main')) || document.scrollingElement || document.documentElement,
+            filterUser: el => !el.querySelector('[class*="LeftSideMessageHeader"], [class*="leftSideMessageHeader"]')
+        },
+        doubao: {
+            hosts: ['www.doubao.com', 'doubao.com'],
+            // container-QQkdo4 is the user message bubble wrapper
+            userSelector: '[class*="container-QQkdo4"]',
             position: { top: 70, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
-            isConversation: () => document.querySelector('[class*="Message"]'),
-            getScrollContainer: () => document.scrollingElement || document.documentElement
+            isConversation: () => !!document.querySelector('[class*="message-block-container"]'),
+            getScrollContainer: () => findScrollable(document.querySelector('[class*="chat-content"], [class*="message-list"], main')) || document.scrollingElement || document.documentElement
+        },
+        qianwen: {
+            hosts: ['tongyi.aliyun.com', 'qianwen.com', 'www.qianwen.com'],
+            // questionItem- wraps each user turn
+            userSelector: '[class*="questionItem-"]',
+            userSelectorFallback: '[class*="bubble-"]',
+            position: { top: 70, right: 16, bottom: 140 },
+            getText: el => (el.textContent || '').trim(),
+            isConversation: () => !!document.querySelector('[class*="questionItem-"], [class*="bubble-"]'),
+            getScrollContainer: () => findScrollable(document.querySelector('[class*="chat-content"], [class*="messageList"], main')) || document.scrollingElement || document.documentElement
+        },
+        kimi: {
+            hosts: ['kimi.ai', 'kimi.moonshot.cn'],
+            // chat-content-item-user wraps each user turn; user-content holds the text
+            userSelector: '.chat-content-item-user, .segment-user',
+            position: { top: 70, right: 16, bottom: 140 },
+            getText: el => (el.querySelector('.user-content, .segment-content') || el).textContent.trim(),
+            isConversation: () => !!document.querySelector('.chat-content-item-user, .segment-user'),
+            getScrollContainer: () => findScrollable(document.querySelector('.message-list-container, .chat-content, main')) || document.scrollingElement || document.documentElement
         }
     };
 
@@ -192,6 +216,10 @@
             // If primary selector yields nothing, try fallback
             if (els.length === 0 && this.adapter.userSelectorFallback) {
                 els = Array.from(document.querySelectorAll(this.adapter.userSelectorFallback));
+            }
+            // Apply platform-specific filter (e.g. Poe: exclude bot messages)
+            if (this.adapter.filterUser) {
+                els = els.filter(this.adapter.filterUser);
             }
             // Deduplicate: remove any element that is a descendant of another element
             // in the same list. This prevents double-counting when a selector matches

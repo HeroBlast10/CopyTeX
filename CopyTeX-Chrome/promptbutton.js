@@ -60,13 +60,24 @@
         },
         kimi: {
             hosts: ['kimi.ai', 'kimi.moonshot.cn'],
-            inputSelector: 'textarea, [contenteditable="true"]',
-            containerSelector: '[class*="chat-input"], form',
+            inputSelector: '.chat-input-editor',
+            containerSelector: '.chat-input',
             getOffset: () => ({ top: 8, left: 0 }),
-            insertText: (input, text) => {
-                if (input.isContentEditable) insertContentEditable(input, text);
-                else insertTextarea(input, text);
-            }
+            insertText: (input, text) => insertContentEditable(input, text)
+        },
+        doubao: {
+            hosts: ['www.doubao.com', 'doubao.com'],
+            inputSelector: 'textarea.semi-input-textarea',
+            containerSelector: '[class*="input-content-container"]',
+            getOffset: () => ({ top: 8, left: 0 }),
+            insertText: (input, text) => insertTextarea(input, text)
+        },
+        qianwen: {
+            hosts: ['tongyi.aliyun.com', 'qianwen.com', 'www.qianwen.com'],
+            inputSelector: '[class*="slateEditorWrapper"] [contenteditable="true"], [class*="chatTextarea"] [contenteditable="true"]',
+            containerSelector: '[class*="chatInput-"]',
+            getOffset: () => ({ top: 8, left: 0 }),
+            insertText: (input, text) => insertContentEditable(input, text)
         },
         poe: {
             hosts: ['poe.com'],

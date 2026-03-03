@@ -161,6 +161,26 @@
 
     function extractMathLatex(element) {
         if (!(element instanceof Element)) return null;
+
+        // Doubao stores LaTeX in data-custom-copy-text with \(...\) or \[...\] wrappers
+        // Walk up to find the outermost container with this attribute
+        let customEl = element.hasAttribute('data-custom-copy-text')
+            ? element
+            : element.closest('[data-custom-copy-text]');
+        if (!customEl) {
+            // Also check inside (e.g. element is the .katex child)
+            customEl = element.querySelector('[data-custom-copy-text]');
+        }
+        if (customEl) {
+            const raw = customEl.getAttribute('data-custom-copy-text') || '';
+            // Strip \(...\) inline and \[...\] display wrappers
+            const stripped = raw
+                .replace(/^\\\((.+)\\\)$/s, '$1')
+                .replace(/^\\\[(.+)\\\]$/s, '$1')
+                .trim();
+            if (stripped) return stripped;
+        }
+
         // Try KaTeX annotation
         const annotation = element.querySelector('annotation[encoding*="tex"], annotation[encoding*="TeX"]');
         if (annotation && annotation.textContent?.trim()) {
@@ -220,9 +240,15 @@
             el.classList.contains('math-display') || el.classList.contains('katex-mathml')) {
             const latex = extractMathLatex(el);
             if (latex) {
+                // Check if display math: standard classes OR Doubao's \[...\] wrapper
+                const rawCustom = el.getAttribute('data-custom-copy-text')
+                    || el.closest('[data-custom-copy-text]')?.getAttribute('data-custom-copy-text')
+                    || el.querySelector('[data-custom-copy-text]')?.getAttribute('data-custom-copy-text')
+                    || '';
                 const isDisplay = el.classList.contains('katex-display') ||
                     el.classList.contains('math-block') ||
-                    el.classList.contains('math-display');
+                    el.classList.contains('math-display') ||
+                    rawCustom.startsWith('\\[');
                 return isDisplay ? `\n$$\n${latex}\n$$\n` : `$${latex}$`;
             }
         }
