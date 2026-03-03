@@ -63,7 +63,7 @@
             '[class*="conversation"] a[href]',
             '[class*="history"] a[href]'
         ],
-        grok:    ['a[href*="/conversation/"]', 'a[href*="/chat/"]', 'nav a[href]'],
+        grok:    ['a[href*="/c/"]', 'a[href*="/conversation/"]', 'a[href*="/chat/"]', 'nav a[href]'],
         kimi:    ['a[href*="/chat/"]', 'nav a[href]'],
         poe:     ['a[href*="/chat/"]', 'nav a[href]'],
         doubao:  ['a[href*="/chat/"]'],
@@ -138,7 +138,7 @@
             gemini:   href => /^https:\/\/gemini\.google\.com\/app\/[a-zA-Z0-9_-]{4,}/.test(href),
             deepseek: href => /chat\.deepseek\.com.*\/chat\//.test(href),
             claude:   href => /claude\.ai.*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
-            grok:     href => /grok\.com.*\/(conversation|chat)\/[a-zA-Z0-9_-]{3,}/.test(href),
+            grok:     href => /grok\.com\/(c|conversation|chat)\/[a-zA-Z0-9_-]{3,}/.test(href),
             kimi:     href => /kimi\.(ai|moonshot\.cn).*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
             poe:      href => /poe\.com.*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
             doubao:   href => /doubao\.com\/chat\/\d+/.test(href),
