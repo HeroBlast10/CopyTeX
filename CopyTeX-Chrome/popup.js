@@ -51,7 +51,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const supportedHosts = [
     'chat.openai.com', 'chatgpt.com', 'gemini.google.com',
     'chat.deepseek.com', 'claude.ai', 'grok.com',
-    'kimi.ai', 'kimi.moonshot.cn', 'poe.com'
+    'kimi.ai', 'kimi.moonshot.cn', 'poe.com',
+    'www.doubao.com', 'doubao.com',
+    'www.qianwen.com', 'qianwen.com', 'tongyi.aliyun.com'
   ];
 
   try {
@@ -90,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (platformInfo) platformInfo.className = 'platform-bar warn';
     if (platformIcon) platformIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
     if (platformName) platformName.textContent = msg;
-    if (platformMeta) platformMeta.textContent = 'ChatGPT, Gemini, DeepSeek, Claude, Grok, Kimi, Poe';
+    if (platformMeta) platformMeta.textContent = 'ChatGPT, Gemini, DeepSeek, Claude, Grok, Kimi, Poe, 豆包, 千问';
     if (exportBtn) exportBtn.disabled = true;
   }
 
