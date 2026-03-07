@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "CopyTeX \u2013 Instantly Copy Real LaTeX from AI chats",
+    "message": "AI Chat Toolkit \u2013 AI Chats Export, Prompts, Timelines, & LaTeX",
     "description": "The name of the extension."
   },
   "extensionDescription": {
-    "message": "Automatically copy math formulas from any site (Gemini, ChatGPT, Claude, etc.) as LaTeX with a double-click",
+    "message": "Supercharge your AI chats. Copy LaTeX formulas, manage custom prompts, view timelines, and backup conversations with ease.",
     "description": "The description of the extension."
   }
 }

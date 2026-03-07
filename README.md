@@ -2,16 +2,16 @@
   <img src="logo.png" width="128" alt="CopyTeX Logo">
 </p>
 
-<h1 align="center">CopyTeX</h1>
+<h1 align="center">AI Chat Toolkit</h1>
 
 <p align="center">
-  <strong>Instantly copy real LaTeX from AI chats · Export conversations · Navigate with Timeline</strong>
+  <strong>Supercharge your AI chats. Copy LaTeX formulas, manage custom prompts, view timelines, and backup conversations with ease.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/HeroBlast10/CopyTeX/blob/main/CopyTeX-Chrome/LICENSE"><img src="https://img.shields.io/badge/license-MIT-7f2d9c" alt="License"></a>
   <img src="https://img.shields.io/badge/manifest-v3-7f2d9c" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/version-1.6.0-7f2d9c" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.1-7f2d9c" alt="Version">
 </p>
 
 ---
@@ -21,7 +21,7 @@
 CopyTeX is a browser extension that supercharges your AI chat workflow:
 
 - **LaTeX Copy** — Double-click any rendered math formula on AI chat pages to copy the real LaTeX source to your clipboard. No more retyping integrals, matrices, or proofs.
-- **Conversation Export** — Export the current chat or **all chats** as Markdown / JSON, with a beautiful in-page export modal and ZIP download.
+- **Conversation Export / Backup** — Export the current chat or **all chats** as Markdown / JSON, with a beautiful in-page export modal and ZIP download.
 - **Interactive Timeline** — A slim sidebar with proportional dots lets you jump to any user message in long conversations.
 - **Prompt Manager** — Save, organize, and quickly insert custom prompts into the chat input box.
 

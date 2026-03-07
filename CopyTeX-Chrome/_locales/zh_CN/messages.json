@@ -1,10 +1,10 @@
 {
   "extensionName": {
-    "message": "CopyTeX – 即刻复制 AI 对话中的原始 LaTeX",
+    "message": "AI Chat Toolkit – AI 对话导出、提示词、时间轴与 LaTeX",
     "description": "扩展名称"
   },
   "extensionDescription": {
-    "message": "自动检测并复制任何网站（Gemini、ChatGPT、Claude等）中的数学公式，双击即可复制LaTeX格式",
+    "message": "全面提升您的 AI 对话体验。轻松复制 LaTeX 公式，管理自定义提示词，查看对话时间轴，并便捷地备份您的聊天记录。",
     "description": "扩展描述"
   }
 }
