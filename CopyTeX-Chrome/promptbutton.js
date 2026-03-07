@@ -1,4 +1,4 @@
-// CopyTeX - Prompt Button
+// AI Chat Toolkit - Prompt Button
 // Quick prompt insertion near the input box on AI chat platforms
 
 (function () {
@@ -360,7 +360,7 @@
             try {
                 this.adapter.insertText(this.inputElement, prompt.content);
             } catch (e) {
-                console.error('[CopyTeX PromptButton] Insert failed:', e);
+                console.error('[AI Chat Toolkit PromptButton] Insert failed:', e);
             }
         }
 

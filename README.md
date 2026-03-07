@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo.png" width="128" alt="CopyTeX Logo">
+  <img src="logo.png" width="128" alt="AI Chat Toolkit Logo">
 </p>
 
 <h1 align="center">AI Chat Toolkit</h1>
@@ -9,16 +9,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/HeroBlast10/CopyTeX/blob/main/CopyTeX-Chrome/LICENSE"><img src="https://img.shields.io/badge/license-MIT-7f2d9c" alt="License"></a>
+  <a href="https://github.com/HeroBlast10/AI Chat Toolkit/blob/main/AI Chat Toolkit-Chrome/LICENSE"><img src="https://img.shields.io/badge/license-MIT-7f2d9c" alt="License"></a>
   <img src="https://img.shields.io/badge/manifest-v3-7f2d9c" alt="Manifest V3">
   <img src="https://img.shields.io/badge/version-1.6.1-7f2d9c" alt="Version">
 </p>
 
 ---
 
-## ✨ What is CopyTeX?
+## ✨ What is AI Chat Toolkit?
 
-CopyTeX is a browser extension that supercharges your AI chat workflow:
+AI Chat Toolkit is a browser extension that supercharges your AI chat workflow:
 
 - **LaTeX Copy** — Double-click any rendered math formula on AI chat pages to copy the real LaTeX source to your clipboard. No more retyping integrals, matrices, or proofs.
 - **Conversation Export / Backup** — Export the current chat or **all chats** as Markdown / JSON, with a beautiful in-page export modal and ZIP download.
@@ -48,13 +48,13 @@ LaTeX copy also works on any webpage using KaTeX or MathJax renderers.
 1. Download or clone this repository.
 2. Open `chrome://extensions` (or `edge://extensions`).
 3. Enable **Developer Mode**.
-4. Click **Load unpacked** → select the `CopyTeX-Chrome` folder.
-5. Navigate to any supported AI chat and start using CopyTeX.
+4. Click **Load unpacked** → select the `AI Chat Toolkit-Chrome` folder.
+5. Navigate to any supported AI chat and start using AI Chat Toolkit.
 
 ### Firefox (Manifest V2)
 
 1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on** → select `CopyTeX-Chrome/manifest-v2.json`.
+2. Click **Load Temporary Add-on** → select `AI Chat Toolkit-Chrome/manifest-v2.json`.
 
 ## 📖 Features
 
@@ -87,7 +87,7 @@ LaTeX copy also works on any webpage using KaTeX or MathJax renderers.
 ## 🏗️ Project Structure
 
 ```
-CopyTeX-Chrome/
+AI Chat Toolkit-Chrome/
 ├── manifest.json          # Chrome Manifest V3
 ├── manifest-v2.json       # Firefox Manifest V2
 ├── background.js          # Service worker (update handler, export orchestration)
@@ -121,7 +121,7 @@ No browsing data is collected, stored, or transmitted.
 
 ## 🌍 Localization
 
-CopyTeX supports:
+AI Chat Toolkit supports:
 - 🇬🇧 English
 - 🇨🇳 简体中文
 
@@ -139,4 +139,4 @@ If you encounter a formula that doesn't copy correctly, please open an issue wit
 
 ## 📄 License
 
-[MIT License](CopyTeX-Chrome/LICENSE) © 2024 [HeroBlast10](https://github.com/HeroBlast10)
+[MIT License](AI Chat Toolkit-Chrome/LICENSE) © 2024 [HeroBlast10](https://github.com/HeroBlast10)

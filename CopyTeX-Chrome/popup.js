@@ -1,4 +1,4 @@
-// CopyTeX - Popup Script
+// AI Chat Toolkit - Popup Script
 // Handles feature toggles, prompt management, and conversation export
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   try {
     chrome.storage.local.get(Object.values(toggleIds), function (result) {
-      if (chrome.runtime.lastError) { console.warn('[CopyTeX Popup] Storage read error:', chrome.runtime.lastError); return; }
+      if (chrome.runtime.lastError) { console.warn('[AI Chat Toolkit Popup] Storage read error:', chrome.runtime.lastError); return; }
       for (const [elId, storageKey] of Object.entries(toggleIds)) {
         const el = document.getElementById(elId);
         if (!el) continue;
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }
     });
-  } catch (e) { console.error('[CopyTeX Popup] Toggle init error:', e); }
+  } catch (e) { console.error('[AI Chat Toolkit Popup] Toggle init error:', e); }
 
   // ============================================================
   //  2. Export Platform Detection
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   try {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (chrome.runtime.lastError) { console.warn('[CopyTeX Popup] tabs.query error:', chrome.runtime.lastError); showNoPlatform('Cannot query tab'); return; }
+      if (chrome.runtime.lastError) { console.warn('[AI Chat Toolkit Popup] tabs.query error:', chrome.runtime.lastError); showNoPlatform('Cannot query tab'); return; }
       const tab = (tabs && tabs[0]) ? tabs[0] : null;
       if (!tab || !tab.id) { showNoPlatform('No active tab'); return; }
       currentTabId = tab.id;
@@ -84,9 +84,9 @@ document.addEventListener('DOMContentLoaded', function () {
             showNoPlatform('Platform not recognized');
           }
         });
-      } catch (e2) { console.error('[CopyTeX Popup] sendMessage error:', e2); showNoPlatform('Connection error'); }
+      } catch (e2) { console.error('[AI Chat Toolkit Popup] sendMessage error:', e2); showNoPlatform('Connection error'); }
     });
-  } catch (e) { console.error('[CopyTeX Popup] tabs.query error:', e); showNoPlatform('Tab query failed'); }
+  } catch (e) { console.error('[AI Chat Toolkit Popup] tabs.query error:', e); showNoPlatform('Tab query failed'); }
 
   function showNoPlatform(msg) {
     if (platformInfo) platformInfo.className = 'platform-bar warn';
@@ -205,5 +205,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  try { loadPrompts(); } catch(e) { console.error('[CopyTeX Popup] loadPrompts error:', e); }
+  try { loadPrompts(); } catch(e) { console.error('[AI Chat Toolkit Popup] loadPrompts error:', e); }
 });

@@ -1,11 +1,11 @@
-// CopyTeX - Content Script
+// AI Chat Toolkit - Content Script
 // Universal formula detection by rendering engine — works on ANY website
 // Supports: KaTeX, MathJax, MediaWiki Math, and data-attribute formulas
 
 const DEBUG = false;
 const debugLog = (...args) => {
     if (DEBUG) {
-        console.log('[CopyTeX]', ...args);
+        console.log('[AI Chat Toolkit]', ...args);
     }
 };
 

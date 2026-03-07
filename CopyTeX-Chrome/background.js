@@ -1,4 +1,4 @@
-// CopyTeX - Background Script
+// AI Chat Toolkit - Background Script
 // Cross-browser compatible (Chrome, Firefox, Edge, Safari)
 
 // Cross-browser API compatibility
@@ -12,11 +12,11 @@ const browserAPI = (() => {
 })();
 
 // Changelog URL (GitHub Pages)
-const CHANGELOG_URL = 'https://heroblast10.github.io/CopyTeX/update.html';
+const CHANGELOG_URL = 'https://heroblast10.github.io/AI Chat Toolkit/update.html';
 
 // Installation / Update handler
 browserAPI.runtime.onInstalled.addListener((details) => {
-    console.log('CopyTeX extension event:', details.reason);
+    console.log('AI Chat Toolkit extension event:', details.reason);
 
     // Set defaults (only if not already set)
     browserAPI.storage.local.get([

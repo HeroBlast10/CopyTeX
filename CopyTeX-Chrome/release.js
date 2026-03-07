@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Release preparation script for CopyTeX
+ * Release preparation script for AI Chat Toolkit
  * Builds packages and creates store-ready ZIP files
  */
 
@@ -111,7 +111,7 @@ function createZipFiles() {
 
 function generateReleaseNotes() {
     const releaseNotes = `
-# CopyTeX v${releaseConfig.version}
+# AI Chat Toolkit v${releaseConfig.version}
 
 ## 🌐 Multi-Browser Support
 - Chrome (Manifest V3)

@@ -1,8 +1,8 @@
-# CopyTeX – Instantly Copy Real LaTeX from AI chats
+# AI Chat Toolkit – Instantly Copy Real LaTeX from AI chats
 
-CopyTeX helps you capture the *real* LaTeX source behind math formulas on modern AI platforms without digging through developer tools. Install the extension, double‑click any rendered equation on Gemini, ChatGPT, Claude, DeepSeek, Grok, Poe, Kimi, and similar sites, and the original LaTeX is copied straight to your clipboard—ready for papers, slides, or further editing.
+AI Chat Toolkit helps you capture the *real* LaTeX source behind math formulas on modern AI platforms without digging through developer tools. Install the extension, double‑click any rendered equation on Gemini, ChatGPT, Claude, DeepSeek, Grok, Poe, Kimi, and similar sites, and the original LaTeX is copied straight to your clipboard—ready for papers, slides, or further editing.
 
-## Why Install CopyTeX?
+## Why Install AI Chat Toolkit?
 - **Accurate Source Retrieval** – Extracts the authoring LaTeX directly from KaTeX/MathJax data nodes instead of guessing from the rendered HTML, so you receive clean, compiler‑ready output.
 - **Time Saver** – Skip manual transcription and screenshotting; one double click replaces minutes of retyping complex integrals, matrices, or proofs.
 - **Cross-Platform Coverage** – Works seamlessly across major AI chat services (Gemini, ChatGPT, Claude, DeepSeek, Grok, Kimi, Poe, Doubao, Qianwen) and any webpage that uses common math renderers.

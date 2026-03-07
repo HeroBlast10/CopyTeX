@@ -1,4 +1,4 @@
-// CopyTeX - Timeline
+// AI Chat Toolkit - Timeline
 // Interactive conversation navigation sidebar for AI chat platforms
 // Dots are distributed proportionally based on actual message positions (like AITimeline)
 

@@ -1,11 +1,11 @@
-# CopyTeX - Chrome Web Store Description
+# AI Chat Toolkit - Chrome Web Store Description
 
 ## Short Description (132 characters max)
 Copy LaTeX from any AI chat with one click. Export conversations. Timeline navigation. Gemini watermark removal. All-in-one.
 
 ## Detailed Description
 
-CopyTeX is the ultimate productivity extension for anyone working with mathematical formulas in AI conversations. Instantly copy LaTeX source from rendered equations across all major AI platforms, export entire conversations, and enjoy enhanced browsing features.
+AI Chat Toolkit is the ultimate productivity extension for anyone working with mathematical formulas in AI conversations. Instantly copy LaTeX source from rendered equations across all major AI platforms, export entire conversations, and enjoy enhanced browsing features.
 
 ## ✨ Key Features
 
@@ -64,7 +64,7 @@ CopyTeX is the ultimate productivity extension for anyone working with mathemati
 
 ## 🚀 Getting Started
 
-1. Install CopyTeX from the Chrome Web Store
+1. Install AI Chat Toolkit from the Chrome Web Store
 2. Visit any supported AI platform
 3. Click on formulas to copy LaTeX, use the timeline for navigation, or export conversations
 4. Toggle features on/off in the extension popup
@@ -99,4 +99,4 @@ CopyTeX is the ultimate productivity extension for anyone working with mathemati
 
 ---
 
-**CopyTeX** - Your all-in-one productivity companion for AI conversations. Install now and transform your workflow!
+**AI Chat Toolkit** - Your all-in-one productivity companion for AI conversations. Install now and transform your workflow!

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Build script for CopyTeX
+ * Build script for AI Chat Toolkit
  * Generates browser-specific packages for Chrome, Firefox, Edge, and Safari
  */
 
@@ -100,7 +100,7 @@ function clean() {
 
 // Main build function
 function build() {
-    console.log('🚀 Building CopyTeX for all browsers...\n');
+    console.log('🚀 Building AI Chat Toolkit for all browsers...\n');
     
     // Clean previous builds
     clean();

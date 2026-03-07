@@ -1,4 +1,4 @@
-// CopyTeX - Conversation Exporter
+// AI Chat Toolkit - Conversation Exporter
 // Export AI chat conversations from supported platforms as Markdown or JSON
 
 (function () {
@@ -966,7 +966,7 @@
             lines.push('');
         });
         lines.push('---');
-        lines.push(`*Exported by CopyTeX from ${platform?.name || 'AI Chat'} on ${new Date().toLocaleString()}*`);
+        lines.push(`*Exported by AI Chat Toolkit from ${platform?.name || 'AI Chat'} on ${new Date().toLocaleString()}*`);
         return lines.join('\n');
     }
 

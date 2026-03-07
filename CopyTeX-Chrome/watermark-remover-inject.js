@@ -1,4 +1,4 @@
-// CopyTeX - Watermark Remover (Main World Injection)
+// AI Chat Toolkit - Watermark Remover (Main World Injection)
 // This script runs in the PAGE's main JS world to intercept window.fetch
 // for Gemini image download URLs and remove watermarks before they reach the browser.
 
@@ -31,7 +31,7 @@
                 alphaMaps[size] = new Float32Array(maps[size]);
             }
             engineReady = true;
-            console.log('[CopyTeX Watermark] Main world engine ready with alpha maps:', Object.keys(alphaMaps));
+            console.log('[AI Chat Toolkit Watermark] Main world engine ready with alpha maps:', Object.keys(alphaMaps));
         }
     });
 
@@ -113,7 +113,7 @@
         const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
 
         if (engineReady && GEMINI_URL_PATTERN.test(url)) {
-            console.log('[CopyTeX Watermark] Intercepting fetch:', url.substring(0, 80) + '...');
+            console.log('[AI Chat Toolkit Watermark] Intercepting fetch:', url.substring(0, 80) + '...');
 
             // Rewrite URL to full-size
             const normalUrl = replaceWithNormalSize(url);
@@ -129,14 +129,14 @@
             try {
                 const originalBlob = await response.blob();
                 const processedBlob = await processBlob(originalBlob);
-                console.log('[CopyTeX Watermark] Fetch interception: watermark removed');
+                console.log('[AI Chat Toolkit Watermark] Fetch interception: watermark removed');
                 return new Response(processedBlob, {
                     status: response.status,
                     statusText: response.statusText,
                     headers: response.headers
                 });
             } catch (err) {
-                console.warn('[CopyTeX Watermark] Fetch processing failed:', err);
+                console.warn('[AI Chat Toolkit Watermark] Fetch processing failed:', err);
                 return origFetch.apply(this, args);
             }
         }
@@ -144,5 +144,5 @@
         return origFetch.apply(this, args);
     };
 
-    console.log('[CopyTeX Watermark] Main world fetch interceptor installed');
+    console.log('[AI Chat Toolkit Watermark] Main world fetch interceptor installed');
 })();

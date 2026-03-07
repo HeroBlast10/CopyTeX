@@ -1,4 +1,4 @@
-// CopyTeX - In-Page Export Button & Modal
+// AI Chat Toolkit - In-Page Export Button & Modal
 // Floating "Export Chat" button on supported AI chat pages with a full export modal
 
 (function () {
@@ -550,7 +550,7 @@
                     this._exportAll(exporter, sidebarConvos, btn, btnText, statusEl);
                 }
             } catch (e) {
-                console.error('[CopyTeX Export] Error:', e);
+                console.error('[AI Chat Toolkit Export] Error:', e);
                 btn.classList.add('error');
                 btnText.textContent = 'Error';
                 statusEl.textContent = e.message || 'Unexpected error';
@@ -702,7 +702,7 @@
                     format: format
                 }, (response) => {
                     if (browserAPI.runtime.lastError || !response || !response.started) {
-                        console.error('[CopyTeX Export] Failed to start background export');
+                        console.error('[AI Chat Toolkit Export] Failed to start background export');
                         this._closeProgressModal();
                     }
                 });
@@ -826,7 +826,7 @@
 
                 setTimeout(() => this._closeProgressModal(), 4000);
             } catch (zipErr) {
-                console.error('[CopyTeX Export] Zip error:', zipErr);
+                console.error('[AI Chat Toolkit Export] Zip error:', zipErr);
                 if (finalDiv) {
                     finalDiv.style.display = 'block';
                     finalDiv.textContent = 'ZIP generation failed: ' + (zipErr.message || 'Unknown error');

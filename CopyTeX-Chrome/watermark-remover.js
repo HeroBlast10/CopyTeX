@@ -1,4 +1,4 @@
-// CopyTeX - Gemini Watermark Remover
+// AI Chat Toolkit - Gemini Watermark Remover
 // Lossless watermark removal for Gemini-generated images using Reverse Alpha Blending
 // Based on the algorithm by journey-ad/gemini-watermark-remover and allenk/GeminiWatermarkTool
 
@@ -105,9 +105,9 @@
                 this.bgImages[48] = bg48;
                 this.bgImages[96] = bg96;
                 this.ready = true;
-                console.log('[CopyTeX Watermark] Engine initialized');
+                console.log('[AI Chat Toolkit Watermark] Engine initialized');
             } catch (error) {
-                console.error('[CopyTeX Watermark] Failed to initialize engine:', error);
+                console.error('[AI Chat Toolkit Watermark] Failed to initialize engine:', error);
             }
         }
 
@@ -243,9 +243,9 @@
 
             imgElement.src = processedUrl;
             imgElement.dataset.copytexWatermark = 'done';
-            console.log('[CopyTeX Watermark] Processed image successfully');
+            console.log('[AI Chat Toolkit Watermark] Processed image successfully');
         } catch (error) {
-            console.warn('[CopyTeX Watermark] Failed to process image:', error);
+            console.warn('[AI Chat Toolkit Watermark] Failed to process image:', error);
             imgElement.dataset.copytexWatermark = 'failed';
             imgElement.src = originalSrc;
         } finally {
@@ -287,7 +287,7 @@
             type: 'COPYTEX_WATERMARK_ALPHA_MAPS',
             maps: maps
         }, '*');
-        console.log('[CopyTeX Watermark] Sent alpha maps to main world');
+        console.log('[AI Chat Toolkit Watermark] Sent alpha maps to main world');
     }
 
     // ========================================================================
@@ -303,7 +303,7 @@
             debounceTimer = setTimeout(findAndProcessImages, 300);
         });
         observer.observe(document.body, { childList: true, subtree: true });
-        console.log('[CopyTeX Watermark] MutationObserver active');
+        console.log('[AI Chat Toolkit Watermark] MutationObserver active');
     }
 
     function destroyObserver() {
@@ -381,7 +381,7 @@
         findAndProcessImages();
         setupObserver();
 
-        console.log('[CopyTeX Watermark] Ready');
+        console.log('[AI Chat Toolkit Watermark] Ready');
     }
 
     if (document.readyState === 'loading') {
