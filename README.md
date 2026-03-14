@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/HeroBlast10/AI Chat Toolkit/blob/main/AI Chat Toolkit-Chrome/LICENSE"><img src="https://img.shields.io/badge/license-MIT-7f2d9c" alt="License"></a>
   <img src="https://img.shields.io/badge/manifest-v3-7f2d9c" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/version-1.6.1-7f2d9c" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.2-7f2d9c" alt="Version">
 </p>
 
 ---
@@ -37,7 +37,6 @@ AI Chat Toolkit is a browser extension that supercharges your AI chat workflow:
 | **Kimi** | ✅ | ✅ | ✅ | ✅ |
 | **Poe** | ✅ | ✅ | ✅ | ✅ |
 | **Doubao (豆包)** | ✅ | ✅ | — | ✅ |
-| **Qianwen (通义千问)** | ✅ | ✅ | — | ✅ |
 
 LaTeX copy also works on any webpage using KaTeX or MathJax renderers.
 

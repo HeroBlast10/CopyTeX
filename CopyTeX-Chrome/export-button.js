@@ -67,7 +67,14 @@
         kimi:    ['a[href*="/chat/"]', 'nav a[href]'],
         poe:     ['a[href*="/chat/"]', 'nav a[href]'],
         doubao:  ['a[href*="/chat/"]'],
-        qianwen: ['a[href*="/chat/"]', 'nav a[href]']
+        qianwen: [
+            'a[href*="/chat/"]',
+            '[class*="session"] a[href]',
+            '[class*="history"] a[href]',
+            '[class*="sidebar"] a[href]',
+            '[class*="conversation"] a[href]',
+            'nav a[href]'
+        ]
     };
 
     function isSupported() {
@@ -142,7 +149,7 @@
             kimi:     href => /kimi\.(ai|moonshot\.cn).*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
             poe:      href => /poe\.com.*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href),
             doubao:   href => /doubao\.com\/chat\/\d+/.test(href),
-            qianwen:  href => /qianwen\.com\/chat\/[a-zA-Z0-9_-]{3,}/.test(href)
+            qianwen:  href => /(qianwen\.com|tongyi\.aliyun\.com)\/.*\/chat\/[a-zA-Z0-9_-]{3,}/.test(href) || /(qianwen\.com|tongyi\.aliyun\.com)\/chat\/[a-zA-Z0-9_-]{3,}/.test(href)
         };
         const hrefFilter = CONVERSATION_HREF_FILTERS[selectorKey] || (() => true);
 
@@ -172,6 +179,50 @@
 
             conversations.push({ title, url: href });
         });
+
+        // ── Qianwen fallback: sidebar uses <div> items with no href.
+        //    We can only reliably export the current conversation.
+        //    Identify the current conversation from the URL and include it.
+        if (conversations.length === 0 && selectorKey === 'qianwen') {
+            const aside = document.getElementById('new-nav-tab-wrapper');
+            const chatIdMatch = location.pathname.match(/\/chat\/([a-zA-Z0-9_-]+)/);
+            if (chatIdMatch) {
+                const currentUrl = location.href;
+                // Try to find the title of the currently active sidebar item
+                // (it has !bg-option in class, meaning it's highlighted)
+                let currentTitle = '';
+                if (aside) {
+                    // Active item has class containing '!bg-option' or 'bg-tag'
+                    const activeItem = aside.querySelector('[class*="!bg-option"], [class*="bg-tag"]');
+                    if (activeItem) {
+                        const titleEl = activeItem.querySelector('[class*="text-ellipsis"], [class*="overflow-hidden"]');
+                        currentTitle = (titleEl || activeItem).textContent.trim();
+                    }
+                }
+                if (!currentTitle) {
+                    currentTitle = document.title.replace(/\s*[-–|·]\s*(千问|Qianwen|通义千问|Qwen).*/i, '').trim()
+                        || 'Qianwen Conversation';
+                }
+                if (!seen.has(currentUrl)) {
+                    seen.add(currentUrl);
+                    conversations.push({ title: currentTitle, url: currentUrl });
+                }
+
+                // Also collect other sidebar items (title only, same-origin URL guess)
+                if (aside) {
+                    const allItems = aside.querySelectorAll('[class*="cursor-pointer"]');
+                    allItems.forEach(item => {
+                        // Skip items without meaningful text or the current item
+                        const titleEl = item.querySelector('[class*="text-ellipsis"], [class*="overflow-hidden"]');
+                        const title = (titleEl || item).textContent.trim();
+                        if (!title || title.length < 2) return;
+                        if (title === currentTitle) return;
+                        // We don't have URLs for other items — skip them for now
+                        // (they cannot be navigated to by background script without a URL)
+                    });
+                }
+            }
+        }
 
         // ── DeepSeek fallback: if no <a> tags found, the sidebar may use
         //    non-link elements (SPA-style click navigation). Scan for any
@@ -286,10 +337,11 @@
         _showModal() {
             if (this.modalOverlay) return;
 
-            const exporter = getExporter();
-            const platform = exporter ? exporter.detectPlatform() : null;
-            const messages = exporter ? exporter.extractMessages() : [];
-            const title = exporter ? exporter.getConversationTitle() : 'AI Conversation';
+        const exporter = getExporter();
+        const platform = exporter ? exporter.detectPlatform() : null;
+        let messages = [];
+        try { messages = exporter ? exporter.extractMessages() : []; } catch (e) { console.warn('[AI Chat Toolkit] extractMessages error:', e); }
+        const title = exporter ? exporter.getConversationTitle() : 'AI Conversation';
             const msgCount = messages.length;
             const sidebarConvos = extractSidebarConversations();
 

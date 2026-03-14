@@ -4,6 +4,10 @@
 (function () {
     'use strict';
 
+    window._copytexExporterStarted = true;
+
+    try {
+
     // Cross-browser API compatibility
     const browserAPI = (() => {
         if (typeof browser !== 'undefined') return browser;
@@ -594,6 +598,7 @@
         }
 
         // ── Strategy 3: .ds-markdown elements with sibling-based user discovery
+        const dsMarkdowns = Array.from(document.querySelectorAll('.ds-markdown'));
         if (dsMarkdowns.length > 0) {
             const allTurns = [];
             const seenEls = new Set();
@@ -830,15 +835,28 @@
         //   div.message-block-container-xxx  ← one per turn
         //     User turn:  contains div.container-QQkdo4 (send bubble, user text)
         //     Bot turn:   contains div.container-P2rR72.flow-markdown-body (markdown)
+        //                 OR div[class*="markdown"] / div[class*="bot-"] / div[class*="assistant-"]
         const blocks = document.querySelectorAll('[class*="message-block-container"]');
         if (blocks.length > 0) {
             blocks.forEach(block => {
                 const sendEl = block.querySelector('[class*="container-QQkdo4"]');
-                const mdEl = block.querySelector('[class*="flow-markdown-body"]');
+                // Try multiple selectors for assistant markdown content
+                const mdEl = block.querySelector('[class*="flow-markdown-body"]')
+                    || block.querySelector('[class*="markdown-body"]')
+                    || block.querySelector('[class*="bot-message"]')
+                    || block.querySelector('[class*="assistant-message"]')
+                    || block.querySelector('[class*="reply-content"]')
+                    || block.querySelector('[class*="response-content"]');
                 if (sendEl && !mdEl) {
                     const text = sendEl.innerText?.trim();
                     if (text) messages.push({ role: 'user', content: text });
                 } else if (mdEl) {
+                    const content = extractRichContent(mdEl);
+                    if (content) messages.push({ role: 'assistant', content });
+                } else if (sendEl && mdEl) {
+                    // Both exist in same block — shouldn't happen but handle safely
+                    const text = sendEl.innerText?.trim();
+                    if (text) messages.push({ role: 'user', content: text });
                     const content = extractRichContent(mdEl);
                     if (content) messages.push({ role: 'assistant', content });
                 }
@@ -846,27 +864,48 @@
             if (messages.length > 0) return messages;
         }
 
-        // Fallback: use send containers for user + paragraph elements for bot
-        const sends = document.querySelectorAll('[class*="container-QQkdo4"]');
-        if (sends.length > 0) {
-            sends.forEach(el => {
-                const text = el.innerText?.trim();
-                if (text) messages.push({ role: 'user', content: text });
+        // Strategy 2: interleave user bubbles and assistant markdown elements by DOM order
+        const userEls = Array.from(document.querySelectorAll('[class*="container-QQkdo4"]'));
+        const assistantEls = Array.from(document.querySelectorAll(
+            '[class*="flow-markdown-body"], [class*="markdown-body"][class*="bot"], [class*="bot-message"], [class*="assistant-message"]'
+        ));
+
+        if (userEls.length > 0 || assistantEls.length > 0) {
+            const all = [];
+            userEls.forEach(el => all.push({ el, role: 'user' }));
+            assistantEls.forEach(el => all.push({ el, role: 'assistant' }));
+            all.sort((a, b) =>
+                a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+            );
+            // Deduplicate descendants
+            const seen = new Set();
+            all.forEach(({ el, role }) => {
+                for (const s of seen) { if (s.contains(el)) return; }
+                seen.add(el);
+                if (role === 'user') {
+                    const text = el.innerText?.trim();
+                    if (text) messages.push({ role: 'user', content: text });
+                } else {
+                    const content = extractRichContent(el);
+                    if (content) messages.push({ role: 'assistant', content });
+                }
             });
+            if (messages.length > 0) return messages;
         }
 
-        return messages.length > 0 ? messages : extractGenericMessages();
+        return extractGenericMessages();
     }
 
     function extractQianwenMessages() {
         const messages = [];
 
         // Qianwen DOM (observed Mar 2026):
-        //   div.bubble-uo23is         ← user message text
-        //   div.answerItem-SsrVa_     ← bot answer container
+        //   div.bubble-VIVxZ8         ← user message text (bubble- prefix)
+        //   div.answerItem-sQ6QT6     ← bot answer container (answerItem- prefix)
         //     div.answerMeta-xxx        ← metadata (model name, time) — skip
-        //     div.markdown-pc-special-class / div.qk-markdown  ← answer content
+        //     div[class*="markdown"] / div.markdown-pc-special-class / div.qk-markdown
         //
+        // questionItem- wraps each user turn (contains the bubble- inside)
         // Bubbles and answerItems alternate in DOM order.
 
         const bubbles = Array.from(document.querySelectorAll('[class*="bubble-"]'));
@@ -880,14 +919,34 @@
                 a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
             );
 
+            // Deduplicate: skip descendants
+            const seen = new Set();
             all.forEach(({ el, role }) => {
+                for (const s of seen) { if (s.contains(el)) return; }
+                seen.add(el);
+
                 if (role === 'user') {
                     const text = el.innerText?.trim();
                     if (text) messages.push({ role: 'user', content: text });
                 } else {
-                    const mdEl = el.querySelector('.markdown-pc-special-class, .qk-markdown, [class*="markdown"]') || el;
-                    const content = extractRichContent(mdEl);
-                    if (content) messages.push({ role: 'assistant', content });
+                    // Skip answerMeta (model name / timestamp header)
+                    // Try progressively broader selectors for the markdown content
+                    const mdEl = el.querySelector(
+                        '.markdown-pc-special-class, .qk-markdown, ' +
+                        '[class*="markdown-body"], [class*="markdownBody"], ' +
+                        '[class*="answer-content"], [class*="answerContent"], ' +
+                        '[class*="markdown"]:not([class*="answerMeta"])'
+                    );
+                    if (mdEl) {
+                        const content = extractRichContent(mdEl);
+                        if (content) messages.push({ role: 'assistant', content });
+                    } else {
+                        // Clone and remove metadata before extracting
+                        const clone = el.cloneNode(true);
+                        clone.querySelectorAll('[class*="answerMeta"], [class*="answer-meta"], [class*="feedback"], [class*="toolbar"]').forEach(m => m.remove());
+                        const content = extractRichContent(clone);
+                        if (content) messages.push({ role: 'assistant', content });
+                    }
                 }
             });
             if (messages.length > 0) return messages;
@@ -1129,6 +1188,11 @@
                 return true;
             }
         });
+    }
+
+    } catch (e) {
+        window._copytexExporterError = e.message + '\n' + (e.stack || '');
+        console.error('[AI Chat Toolkit] exporter.js fatal error:', e);
     }
 
 })();

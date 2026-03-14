@@ -87,22 +87,28 @@
         },
         doubao: {
             hosts: ['www.doubao.com', 'doubao.com'],
-            // container-QQkdo4 is the user message bubble wrapper
+            // container-QQkdo4 is the user message bubble wrapper; fall back to
+            // any element that looks like a user send bubble if class name changes.
             userSelector: '[class*="container-QQkdo4"]',
+            userSelectorFallback: '[class*="message-block-container"] [class*="send"], [class*="message-block-container"] [class*="user"]',
             position: { top: 70, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
-            isConversation: () => !!document.querySelector('[class*="message-block-container"]'),
-            getScrollContainer: () => findScrollable(document.querySelector('[class*="chat-content"], [class*="message-list"], main')) || document.scrollingElement || document.documentElement
+            // isConversation: check for chat URL pattern OR any message block
+            isConversation: () => /\/chat\/\d+/.test(location.pathname)
+                || !!document.querySelector('[class*="message-block-container"], [class*="container-QQkdo4"]'),
+            getScrollContainer: () => findScrollable(document.querySelector('[class*="chat-content"], [class*="message-list"], [class*="messageList"], main')) || document.scrollingElement || document.documentElement
         },
         qianwen: {
             hosts: ['tongyi.aliyun.com', 'qianwen.com', 'www.qianwen.com'],
-            // questionItem- wraps each user turn
+            // questionItem- wraps each user turn; bubble- is also used on some layouts
             userSelector: '[class*="questionItem-"]',
             userSelectorFallback: '[class*="bubble-"]',
             position: { top: 70, right: 16, bottom: 140 },
             getText: el => (el.textContent || '').trim(),
-            isConversation: () => !!document.querySelector('[class*="questionItem-"], [class*="bubble-"]'),
-            getScrollContainer: () => findScrollable(document.querySelector('[class*="chat-content"], [class*="messageList"], main')) || document.scrollingElement || document.documentElement
+            // isConversation: check URL path or presence of chat elements
+            isConversation: () => /\/chat\//.test(location.pathname) || /\/c\//.test(location.pathname)
+                || !!document.querySelector('[class*="questionItem-"], [class*="bubble-"], [class*="answerItem-"]'),
+            getScrollContainer: () => findScrollable(document.querySelector('[class*="chat-content"], [class*="messageList"], [class*="message-list"], main')) || document.scrollingElement || document.documentElement
         },
         kimi: {
             hosts: ['kimi.ai', 'kimi.moonshot.cn'],
@@ -495,11 +501,15 @@
         }
 
         _onUrlChange() {
-            setTimeout(() => {
+            setTimeout(async () => {
                 if (this.adapter.isConversation()) {
-                    this.scrollContainer = this.adapter.getScrollContainer();
-                    this._recalcAndRender();
                     this.wrapper.classList.remove('hidden');
+                    // Wait for messages to render after SPA navigation
+                    const found = await this._waitForMessages(8000);
+                    if (found) {
+                        this.scrollContainer = this.adapter.getScrollContainer();
+                        this._recalcAndRender();
+                    }
                 } else {
                     this.wrapper.classList.add('hidden');
                 }
@@ -525,23 +535,42 @@
     //  Initialize timeline
     // ============================================================
     let timeline = null;
+    let _globalUrlWatcher = null;
+    let _globalLastUrl = location.href;
+
+    function tryCreateTimeline() {
+        if (timeline) return;
+        const adapter = detectAdapter();
+        if (!adapter) return;
+        if (adapter.isConversation()) {
+            timeline = new CopyTexTimeline(adapter);
+            timeline.init();
+        }
+    }
 
     function initTimeline() {
         if (timeline) return;
         const adapter = detectAdapter();
         if (!adapter) return;
-        if (!adapter.isConversation()) {
-            setTimeout(() => {
-                if (timeline) return;
-                if (adapter.isConversation()) {
-                    timeline = new CopyTexTimeline(adapter);
-                    timeline.init();
+
+        tryCreateTimeline();
+
+        // If not in a conversation yet (e.g. on homepage), watch for SPA navigation
+        if (!timeline) {
+            _globalUrlWatcher = setInterval(() => {
+                if (location.href !== _globalLastUrl) {
+                    _globalLastUrl = location.href;
+                    setTimeout(() => {
+                        tryCreateTimeline();
+                        if (timeline && _globalUrlWatcher) {
+                            // Timeline created, stop this watcher (timeline has its own)
+                            clearInterval(_globalUrlWatcher);
+                            _globalUrlWatcher = null;
+                        }
+                    }, 800);
                 }
-            }, 2000);
-            return;
+            }, 800);
         }
-        timeline = new CopyTexTimeline(adapter);
-        timeline.init();
     }
 
     if (document.readyState === 'loading') {
@@ -552,6 +581,7 @@
 
     window.addEventListener('beforeunload', () => {
         if (timeline) timeline.destroy();
+        if (_globalUrlWatcher) clearInterval(_globalUrlWatcher);
     });
 
 })();
