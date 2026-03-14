@@ -14,6 +14,18 @@
   <img src="https://img.shields.io/badge/version-1.6.2-7f2d9c" alt="Version">
 </p>
 
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/ai-chat-toolkit-%E2%80%93-ai-chat/dnkgkjeghbgobiflkonjgnfdejoeeocg">
+    <img src="https://img.shields.io/badge/Chrome-Web%20Store-4285F4?logo=googlechrome&logoColor=white" alt="Install on Chrome">
+  </a>
+  <a href="https://microsoftedge.microsoft.com/addons/detail/copytex-%E2%80%93-%E5%8D%B3%E5%88%BB%E5%A4%8D%E5%88%B6-ai-%E5%AF%B9%E8%AF%9D%E4%B8%AD%E7%9A%84%E5%8E%9F%E5%A7%8B-/ibnmhabmikbofkccpglnippndpdepgmd">
+    <img src="https://img.shields.io/badge/Microsoft-Edge-0078D7?logo=microsoftedge&logoColor=white" alt="Install on Edge">
+  </a>
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/copytex/">
+    <img src="https://img.shields.io/badge/Firefox-Add--ons-FF7139?logo=firefoxbrowser&logoColor=white" alt="Install on Firefox">
+  </a>
+</p>
+
 ---
 
 ## ✨ What is AI Chat Toolkit?
