@@ -34,7 +34,6 @@ AI Chat Toolkit is a browser extension that supercharges your AI chat workflow:
 | **Claude** | ✅ | ✅ | ✅ | ✅ |
 | **DeepSeek** | ✅ | ✅ | ✅ | ✅ |
 | **Grok** | ✅ | ✅ | ✅ | ✅ |
-| **Kimi** | ✅ | ✅ | ✅ | ✅ |
 | **Poe** | ✅ | ✅ | ✅ | ✅ |
 | **Doubao (豆包)** | ✅ | ✅ | — | ✅ |
 
