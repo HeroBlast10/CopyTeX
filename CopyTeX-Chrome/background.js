@@ -134,7 +134,10 @@ function extractFromTab(url, format, timeoutMs, sidebarTitle) {
                     });
                 }
 
-                setTimeout(trySendMessage, 2000);
+                // Wait longer before first attempt: ChatGPT and other SPAs
+                // need extra time to hydrate JS-rendered message content after
+                // the tab status reaches 'complete'.
+                setTimeout(trySendMessage, 4000);
             };
             browserAPI.tabs.onUpdated.addListener(onUpdated);
         });

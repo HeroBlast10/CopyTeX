@@ -349,19 +349,45 @@
         const messages = [];
 
         // Strategy 1: data-message-author-role (most reliable)
-        const roleElements = document.querySelectorAll('[data-message-author-role]');
+        // ChatGPT's DOM sometimes has multiple nested elements sharing
+        // data-message-author-role on the same turn. Deduplicate by keeping
+        // only elements that are NOT a descendant of another matched element.
+        const roleElements = Array.from(document.querySelectorAll('[data-message-author-role]'));
         if (roleElements.length > 0) {
-            roleElements.forEach(el => {
+            const deduped = roleElements.filter(el =>
+                !roleElements.some(other => other !== el && other.contains(el))
+            );
+
+            deduped.forEach(el => {
                 const role = el.getAttribute('data-message-author-role');
                 if (role === 'system' || role === 'tool') return;
 
                 const article = el.closest('article')
                     || el.closest('[data-testid^="conversation-turn"]')
                     || el.parentElement;
-                const contentEl = article?.querySelector('.markdown.prose')
-                    || article?.querySelector('.markdown')
-                    || article?.querySelector('.whitespace-pre-wrap')
-                    || article?.querySelector('[data-message-content]');
+
+                // Prefer the most specific content container, falling back broadly.
+                // For assistant: pick the largest .markdown block (avoids partial
+                // streaming snapshots that may also match .markdown).
+                let contentEl = null;
+                if (role !== 'user') {
+                    // Collect all candidate markdown blocks and pick the longest one
+                    // to avoid grabbing a streaming-in partial fragment.
+                    const candidates = Array.from(
+                        article?.querySelectorAll('.markdown.prose, .markdown') || []
+                    );
+                    if (candidates.length > 0) {
+                        contentEl = candidates.reduce((best, c) =>
+                            (c.textContent?.length || 0) > (best.textContent?.length || 0) ? c : best
+                        );
+                    }
+                }
+                if (!contentEl) {
+                    contentEl = article?.querySelector('.markdown.prose')
+                        || article?.querySelector('.markdown')
+                        || article?.querySelector('.whitespace-pre-wrap')
+                        || article?.querySelector('[data-message-content]');
+                }
                 if (!contentEl) return;
 
                 const content = role === 'user'
@@ -371,7 +397,7 @@
                     messages.push({ role: role === 'user' ? 'user' : 'assistant', content });
                 }
             });
-            return messages;
+            if (messages.length > 0) return messages;
         }
 
         // Strategy 2: conversation-turn test IDs
@@ -1141,14 +1167,36 @@
 
             if (request.type === 'extractForExport') {
                 // SPA pages load conversation content asynchronously.
-                // Poll the DOM for messages before responding.
-                const maxWait = 20000;
-                const pollInterval = 1500;
+                // Poll the DOM for messages, but also wait for content to
+                // stabilise — ChatGPT streams responses, so we must confirm
+                // the extracted text hasn't changed between two consecutive
+                // polls before considering it complete.
+                const maxWait = 25000;
+                const pollInterval = 2000;
                 const startTime = Date.now();
+                let lastSnapshot = '';
+                let stableCount = 0;
+                const requiredStable = 2; // need 2 consecutive identical snapshots
 
                 function tryExtract() {
                     const messages = extractMessages();
-                    if (messages.length > 0 || Date.now() - startTime >= maxWait) {
+
+                    // Build a lightweight fingerprint of current content
+                    const snapshot = messages.map(m => m.content.length).join(',');
+
+                    if (messages.length > 0) {
+                        if (snapshot === lastSnapshot) {
+                            stableCount++;
+                        } else {
+                            stableCount = 0;
+                            lastSnapshot = snapshot;
+                        }
+                    }
+
+                    const timedOut = Date.now() - startTime >= maxWait;
+                    const stable = messages.length > 0 && stableCount >= requiredStable;
+
+                    if (stable || timedOut) {
                         let title = getConversationTitle();
                         const platform = detectPlatform();
                         const platformNames = ['Gemini Conversation', 'DeepSeek Conversation', 'ChatGPT Conversation', 'Claude Conversation', 'Grok Conversation', 'Kimi Conversation', 'Poe Conversation', 'Doubao Conversation', 'Qianwen Conversation', 'AI Conversation'];
