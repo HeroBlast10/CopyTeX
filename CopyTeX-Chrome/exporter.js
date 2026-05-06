@@ -358,6 +358,11 @@
                 !roleElements.some(other => other !== el && other.contains(el))
             );
 
+            // Track which (container, role) pairs have been processed to prevent
+            // duplicate messages when ChatGPT renders multiple role elements
+            // inside the same turn container (common in single-turn conversations).
+            const processedRoles = new Map();
+
             deduped.forEach(el => {
                 const role = el.getAttribute('data-message-author-role');
                 if (role === 'system' || role === 'tool') return;
@@ -365,6 +370,13 @@
                 const article = el.closest('article')
                     || el.closest('[data-testid^="conversation-turn"]')
                     || el.parentElement;
+
+                if (article) {
+                    const roles = processedRoles.get(article);
+                    if (roles && roles.has(role)) return;
+                    if (!roles) processedRoles.set(article, new Set([role]));
+                    else roles.add(role);
+                }
 
                 // Prefer the most specific content container, falling back broadly.
                 // For assistant: pick the largest .markdown block (avoids partial
@@ -1017,22 +1029,41 @@
         return messages;
     }
 
+    // Remove consecutive messages with the same role and identical content.
+    // This catches duplication bugs across all platforms (e.g. ChatGPT
+    // rendering the same assistant response in multiple DOM containers).
+    function deduplicateMessages(messages) {
+        if (messages.length <= 1) return messages;
+        const result = [messages[0]];
+        for (let i = 1; i < messages.length; i++) {
+            const prev = result[result.length - 1];
+            const curr = messages[i];
+            if (curr.role === prev.role && curr.content === prev.content) continue;
+            result.push(curr);
+        }
+        return result;
+    }
+
     function extractMessages() {
         const platform = detectPlatform();
-        if (!platform) return extractGenericMessages();
-
-        switch (platform.id) {
-            case 'chatgpt': return extractChatGPTMessages();
-            case 'gemini': return extractGeminiMessages();
-            case 'deepseek': return extractDeepSeekMessages();
-            case 'claude': return extractClaudeMessages();
-            case 'grok': return extractGrokMessages();
-            case 'kimi': return extractKimiMessages();
-            case 'poe': return extractPoeMessages();
-            case 'doubao': return extractDoubaoMessages();
-            case 'qianwen': return extractQianwenMessages();
-            default: return extractGenericMessages();
+        let messages;
+        if (!platform) {
+            messages = extractGenericMessages();
+        } else {
+            switch (platform.id) {
+                case 'chatgpt': messages = extractChatGPTMessages(); break;
+                case 'gemini': messages = extractGeminiMessages(); break;
+                case 'deepseek': messages = extractDeepSeekMessages(); break;
+                case 'claude': messages = extractClaudeMessages(); break;
+                case 'grok': messages = extractGrokMessages(); break;
+                case 'kimi': messages = extractKimiMessages(); break;
+                case 'poe': messages = extractPoeMessages(); break;
+                case 'doubao': messages = extractDoubaoMessages(); break;
+                case 'qianwen': messages = extractQianwenMessages(); break;
+                default: messages = extractGenericMessages(); break;
+            }
         }
+        return deduplicateMessages(messages);
     }
 
     // --- Export Formatting ---
