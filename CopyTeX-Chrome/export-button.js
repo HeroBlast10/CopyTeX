@@ -710,10 +710,12 @@
             document.body.appendChild(overlay);
             requestAnimationFrame(() => overlay.classList.add('visible'));
 
-            // Cancel button
             const cancelBtn = footer.querySelector('#copytex-prog-cancel');
             cancelBtn.addEventListener('click', () => {
                 this._exportCancelled = true;
+                if (browserAPI?.runtime?.sendMessage) {
+                    browserAPI.runtime.sendMessage({ type: 'cancelExportAllChats' });
+                }
                 this._closeProgressModal();
             });
 
@@ -913,6 +915,7 @@
         destroy() {
             if (this.fab) { this.fab.remove(); this.fab = null; }
             this._closeModal();
+            this._closeProgressModal();
         }
     }
 

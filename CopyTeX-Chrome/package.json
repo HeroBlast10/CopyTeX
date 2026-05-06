@@ -1,7 +1,7 @@
 {
-  "name": "universal-math-formula-copier",
-  "version": "1.0.2",
-  "description": "Copy mathematical formulas from AI platforms in LaTeX format with a simple double-click",
+  "name": "ai-chat-toolkit",
+  "version": "1.6.3",
+  "description": "AI Chat Toolkit - LaTeX copy, conversation export, timeline, prompts, and more for AI chat platforms",
   "main": "build.js",
   "scripts": {
     "build": "node build.js",

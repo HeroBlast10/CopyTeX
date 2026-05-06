@@ -17,7 +17,7 @@ const browsers = {
     },
     firefox: {
         name: 'firefox',
-        manifest: 'manifest-v2.json', // Manifest V2
+        manifest: 'manifest_v2.json', // Manifest V2
         outputDir: 'dist/firefox'
     },
     edge: {
@@ -27,7 +27,7 @@ const browsers = {
     },
     safari: {
         name: 'safari',
-        manifest: 'manifest-v2.json', // Manifest V2 (Safari uses WebExtensions)
+        manifest: 'manifest_v2.json', // Manifest V2 (Safari uses WebExtensions)
         outputDir: 'dist/safari'
     }
 };
@@ -36,12 +36,24 @@ const browsers = {
 const commonFiles = [
     'content.js',
     'background.js',
-    'styles.css',
+    'exporter.js',
+    'export-button.js',
+    'timeline.js',
+    'promptbutton.js',
+    'watermark-remover.js',
+    'watermark-remover-inject.js',
+    'jszip.min.js',
     'popup.html',
     'popup.js',
+    'export-button.css',
+    'timeline.css',
+    'promptbutton.css',
+    'watermark-remover.css',
     'icons/',
+    'assets/',
     '_locales/',
-    'README.md'
+    'README.md',
+    'LICENSE'
 ];
 
 // Create directory if it doesn't exist

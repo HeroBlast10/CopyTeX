@@ -163,11 +163,12 @@
         }
 
         _listenStorage() {
-            browserAPI.storage.onChanged.addListener((changes, area) => {
+            this._storageHandler = (changes, area) => {
                 if (area === 'local' && changes.copytex_prompts) {
                     this.prompts = changes.copytex_prompts.newValue || [];
                 }
-            });
+            };
+            browserAPI.storage.onChanged.addListener(this._storageHandler);
         }
 
         _createButton() {
@@ -495,8 +496,16 @@
         destroy() {
             if (this._observer) this._observer.disconnect();
             if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
+            if (this._storageHandler && browserAPI?.storage?.onChanged) {
+                browserAPI.storage.onChanged.removeListener(this._storageHandler);
+                this._storageHandler = null;
+            }
             if (this.button) this.button.remove();
             this._hideDropdown();
+            if (this._modalOverlay) {
+                if (this._modalOverlay.parentNode) this._modalOverlay.parentNode.removeChild(this._modalOverlay);
+                this._modalOverlay = null;
+            }
         }
     }
 

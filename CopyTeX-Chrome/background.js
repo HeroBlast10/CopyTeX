@@ -12,7 +12,7 @@ const browserAPI = (() => {
 })();
 
 // Changelog URL (GitHub Pages)
-const CHANGELOG_URL = 'https://heroblast10.github.io/AI Chat Toolkit/update.html';
+const CHANGELOG_URL = 'https://heroblast10.github.io/AI%20Chat%20Toolkit/update.html';
 
 // Installation / Update handler
 browserAPI.runtime.onInstalled.addListener((details) => {
@@ -73,18 +73,21 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Helper: open a tab, wait for it to fully load, then send a message and get the response.
-// The content script (exporter.js) polls the DOM for up to 20s internally,
-// so we mainly need to handle: tab creation, waiting for load, and retrying
-// the message send in case content scripts aren't injected yet.
 function extractFromTab(url, format, timeoutMs, sidebarTitle) {
     return new Promise((resolve) => {
         const timeout = timeoutMs || 60000;
         let tabId = null;
         let settled = false;
+        let onUpdated = null;
 
         const finish = (result) => {
             if (settled) return;
             settled = true;
+            clearTimeout(timer);
+            if (onUpdated) {
+                browserAPI.tabs.onUpdated.removeListener(onUpdated);
+                onUpdated = null;
+            }
             if (tabId !== null) {
                 try { browserAPI.tabs.remove(tabId); } catch (e) { /* ignore */ }
             }
@@ -95,15 +98,15 @@ function extractFromTab(url, format, timeoutMs, sidebarTitle) {
 
         browserAPI.tabs.create({ url, active: false }, (tab) => {
             if (browserAPI.runtime.lastError || !tab) {
-                clearTimeout(timer);
                 finish({ title: url, messageCount: 0, error: 'Failed to open tab' });
                 return;
             }
             tabId = tab.id;
 
-            const onUpdated = (updatedTabId, changeInfo) => {
+            onUpdated = (updatedTabId, changeInfo) => {
                 if (updatedTabId !== tabId || changeInfo.status !== 'complete') return;
                 browserAPI.tabs.onUpdated.removeListener(onUpdated);
+                onUpdated = null;
 
                 let attempt = 0;
                 const maxAttempts = 8;
@@ -118,25 +121,18 @@ function extractFromTab(url, format, timeoutMs, sidebarTitle) {
                             if (attempt < maxAttempts) {
                                 setTimeout(trySendMessage, retryDelay);
                             } else {
-                                clearTimeout(timer);
                                 finish({ title: url, messageCount: 0, error: 'Content script not responding' });
                             }
                         } else {
-                            // If we got a response but 0 messages, the page might still
-                            // be loading (SPA). Retry a few more times before giving up.
                             if (response.messageCount === 0 && attempt < maxAttempts) {
                                 setTimeout(trySendMessage, retryDelay);
                             } else {
-                                clearTimeout(timer);
                                 finish(response);
                             }
                         }
                     });
                 }
 
-                // Wait longer before first attempt: ChatGPT and other SPAs
-                // need extra time to hydrate JS-rendered message content after
-                // the tab status reaches 'complete'.
                 setTimeout(trySendMessage, 4000);
             };
             browserAPI.tabs.onUpdated.addListener(onUpdated);
@@ -144,10 +140,12 @@ function extractFromTab(url, format, timeoutMs, sidebarTitle) {
     });
 }
 
+// Batch export cancellation flag
+let _batchExportCancelled = false;
+
 // Cross-browser message handling
 browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'checkClipboardPermission') {
-        // Check if permissions API is available
         if (browserAPI.permissions && browserAPI.permissions.contains) {
             browserAPI.permissions.contains({
                 permissions: ['clipboardWrite']
@@ -155,23 +153,36 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 sendResponse({hasPermission: result});
             });
         } else {
-            // Assume permission is available for browsers without permissions API
             sendResponse({hasPermission: true});
         }
-        return true; // Keep message channel open
+        return true;
+    }
+
+    if (request.type === 'cancelExportAllChats') {
+        _batchExportCancelled = true;
+        sendResponse({ cancelled: true });
+        return true;
     }
 
     if (request.type === 'exportAllChats') {
-        // Orchestrate: open each conversation URL in a background tab, extract, report progress
         const conversations = request.conversations || [];
         const format = request.format || 'markdown';
         const senderTabId = sender.tab ? sender.tab.id : null;
+        _batchExportCancelled = false;
+
+        // Keep service worker alive during long-running batch export (MV3)
+        let keepAlive = setInterval(() => {
+            if (browserAPI.runtime?.getPlatformInfo) {
+                browserAPI.runtime.getPlatformInfo(() => {});
+            }
+        }, 25000);
 
         (async () => {
             const results = [];
             for (let i = 0; i < conversations.length; i++) {
+                if (_batchExportCancelled) break;
+
                 const convo = conversations[i];
-                // Send progress update to the requesting tab
                 if (senderTabId !== null) {
                     try {
                         browserAPI.tabs.sendMessage(senderTabId, {
@@ -189,7 +200,8 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 result.url = convo.url;
                 results.push(result);
 
-                // Send progress update: done with this one
+                if (_batchExportCancelled) break;
+
                 if (senderTabId !== null) {
                     try {
                         browserAPI.tabs.sendMessage(senderTabId, {
@@ -204,8 +216,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
             }
 
-            // Send final results
-            if (senderTabId !== null) {
+            clearInterval(keepAlive);
+
+            if (senderTabId !== null && !_batchExportCancelled) {
                 try {
                     browserAPI.tabs.sendMessage(senderTabId, {
                         type: 'exportAllChatsComplete',
@@ -220,14 +233,15 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.type === 'copyToClipboard') {
-        // Fallback clipboard copy through background script
+        if (!sender.tab || !sender.tab.id) {
+            sendResponse({ success: false, error: 'No tab context' });
+            return true;
+        }
         if (browserAPI.scripting && browserAPI.scripting.executeScript) {
-            // Manifest V3 (Chrome, Edge)
             browserAPI.scripting.executeScript({
                 target: { tabId: sender.tab.id },
                 func: (text) => {
                     navigator.clipboard.writeText(text).catch(() => {
-                        // Fallback method
                         const textarea = document.createElement('textarea');
                         textarea.value = text;
                         document.body.appendChild(textarea);
@@ -239,20 +253,9 @@ browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 args: [request.text]
             });
         } else if (browserAPI.tabs && browserAPI.tabs.executeScript) {
-            // Manifest V2 (Firefox, older browsers)
+            const escaped = JSON.stringify(request.text);
             browserAPI.tabs.executeScript(sender.tab.id, {
-                code: `
-                    (function(text) {
-                        navigator.clipboard.writeText(text).catch(() => {
-                            const textarea = document.createElement('textarea');
-                            textarea.value = text;
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(textarea);
-                        });
-                    })('${request.text.replace(/'/g, "\\'")}');
-                `
+                code: `(function(){var text=${escaped};navigator.clipboard.writeText(text).catch(function(){var t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);});})()`
             });
         }
         sendResponse({success: true});

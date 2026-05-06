@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 
 // Release configuration
 const releaseConfig = {
-    version: '1.0.2',
+    version: '1.6.3',
     browsers: ['chrome', 'firefox', 'edge', 'safari'],
     storeUrls: {
         chrome: 'https://chrome.google.com/webstore/devconsole/',
@@ -40,7 +40,7 @@ function validateFiles() {
     
     const requiredFiles = [
         'manifest.json',
-        'manifest-v2.json',
+        'manifest_v2.json',
         'content.js',
         'background.js',
         'popup.html',

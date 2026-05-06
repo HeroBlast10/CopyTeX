@@ -66,9 +66,17 @@
 
     function detectPlatform() {
         const hostname = window.location.hostname;
-        const fullUrl = window.location.href;
+        const pathname = window.location.pathname;
         for (const [id, config] of Object.entries(EXPORT_PLATFORMS)) {
-            if (config.hosts.some(h => hostname.includes(h) || fullUrl.includes(h))) {
+            if (config.hosts.some(h => {
+                if (h.includes('/')) {
+                    const slashIdx = h.indexOf('/');
+                    const hostPart = h.substring(0, slashIdx);
+                    const pathPrefix = h.substring(slashIdx);
+                    return hostname.includes(hostPart) && pathname.startsWith(pathPrefix);
+                }
+                return hostname.includes(h);
+            })) {
                 return { id, ...config };
             }
         }

@@ -425,14 +425,21 @@ function injectStyles() {
 
 // ============================================================
 //  Attach interactive handlers to a formula element
+//  Uses AbortController so listeners can be cleanly removed on disable.
 // ============================================================
+const _handlerControllers = new WeakMap();
+
 function attachFormulaHandlers(formulaElement) {
     if (formulaElement.hasAttribute('data-copytex-ready')) return;
     if (!formulaElement.isConnected) return;
 
-    // Pre-extract LaTeX — if extraction fails, don't attach interaction
     const latex = cleanLatex(extractLatex(formulaElement));
     if (!latex) return;
+
+    _handlerControllers.get(formulaElement)?.abort();
+    const controller = new AbortController();
+    const signal = controller.signal;
+    _handlerControllers.set(formulaElement, controller);
 
     formulaElement.setAttribute('data-copytex-ready', '1');
     formulaElement.setAttribute('data-copytex-latex', latex);
@@ -440,18 +447,16 @@ function attachFormulaHandlers(formulaElement) {
 
     formulaElement.addEventListener('mouseenter', () => {
         showTooltip('Click to copy LaTeX', formulaElement);
-    });
+    }, { signal });
 
     formulaElement.addEventListener('mouseleave', () => {
         hideTooltip();
-    });
+    }, { signal });
 
-    // Prevent default on mousedown to avoid canvas editing mode
     formulaElement.addEventListener('mousedown', (e) => {
         e.preventDefault();
-    }, true);
+    }, { capture: true, signal });
 
-    // Single click to copy
     formulaElement.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -462,7 +467,7 @@ function attachFormulaHandlers(formulaElement) {
         } else {
             showToast('No LaTeX source found', false, formulaElement);
         }
-    }, true);
+    }, { capture: true, signal });
 }
 
 // ============================================================
@@ -535,9 +540,12 @@ function enableFormulaCopy() {
 function disableFormulaCopy() {
     _formulaEnabled = false;
     if (_formulaObserver) { _formulaObserver.disconnect(); _formulaObserver = null; }
-    // Remove all formula handlers and visual indicators
     document.querySelectorAll('[data-copytex-ready]').forEach(el => {
+        _handlerControllers.get(el)?.abort();
+        _handlerControllers.delete(el);
         el.removeAttribute('data-copytex-ready');
+        el.removeAttribute('data-copytex-latex');
+        el.classList.remove('copytex-interactive');
         el.style.cursor = '';
         el.title = '';
     });

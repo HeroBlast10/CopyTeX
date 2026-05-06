@@ -538,6 +538,12 @@
     let _globalUrlWatcher = null;
     let _globalLastUrl = location.href;
 
+    const browserAPI = (() => {
+        if (typeof browser !== 'undefined') return browser;
+        if (typeof chrome !== 'undefined') return chrome;
+        return null;
+    })();
+
     function tryCreateTimeline() {
         if (timeline) return;
         const adapter = detectAdapter();
@@ -555,7 +561,6 @@
 
         tryCreateTimeline();
 
-        // If not in a conversation yet (e.g. on homepage), watch for SPA navigation
         if (!timeline) {
             _globalUrlWatcher = setInterval(() => {
                 if (location.href !== _globalLastUrl) {
@@ -563,7 +568,6 @@
                     setTimeout(() => {
                         tryCreateTimeline();
                         if (timeline && _globalUrlWatcher) {
-                            // Timeline created, stop this watcher (timeline has its own)
                             clearInterval(_globalUrlWatcher);
                             _globalUrlWatcher = null;
                         }
@@ -573,15 +577,42 @@
         }
     }
 
+    function destroyTimeline() {
+        if (timeline) { timeline.destroy(); timeline = null; }
+        if (_globalUrlWatcher) { clearInterval(_globalUrlWatcher); _globalUrlWatcher = null; }
+    }
+
+    function startWithToggleCheck() {
+        if (!browserAPI?.storage) { setTimeout(initTimeline, 500); return; }
+        try {
+            browserAPI.storage.local.get('copytex_timeline_enabled', (result) => {
+                if (browserAPI.runtime?.lastError) { setTimeout(initTimeline, 500); return; }
+                if (result.copytex_timeline_enabled !== false) {
+                    setTimeout(initTimeline, 500);
+                }
+            });
+            browserAPI.storage.onChanged.addListener((changes) => {
+                if (changes.copytex_timeline_enabled) {
+                    if (changes.copytex_timeline_enabled.newValue === false) {
+                        destroyTimeline();
+                    } else {
+                        initTimeline();
+                    }
+                }
+            });
+        } catch (e) {
+            setTimeout(initTimeline, 500);
+        }
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initTimeline, { once: true });
+        document.addEventListener('DOMContentLoaded', startWithToggleCheck, { once: true });
     } else {
-        setTimeout(initTimeline, 500);
+        startWithToggleCheck();
     }
 
     window.addEventListener('beforeunload', () => {
-        if (timeline) timeline.destroy();
-        if (_globalUrlWatcher) clearInterval(_globalUrlWatcher);
+        destroyTimeline();
     });
 
 })();
